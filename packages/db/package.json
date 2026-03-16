@@ -1,0 +1,28 @@
+{
+  "name": "@smartdine/db",
+  "version": "0.0.0",
+  "private": true,
+  "main": "dist/src/index.js",
+  "scripts": {
+    "dev": "tsc --watch",
+    "build": "tsc",
+    "check-types": "tsc --noEmit",
+    "db:push": "drizzle-kit push",
+    "db:pull": "drizzle-kit pull",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:studio": "drizzle-kit studio"
+  },
+  "devDependencies": {
+    "@smartdine/typescript-config": "workspace:*",
+    "@types/pg": "^8.18.0",
+    "dotenv": "^17.3.1",
+    "drizzle-kit": "^0.31.9",
+    "typescript": "catalog:"
+  },
+  "dependencies": {
+    "@neondatabase/serverless": "^1.0.2",
+    "drizzle-orm": "^0.45.1",
+    "pg": "^8.19.0"
+  }
+}
