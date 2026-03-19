@@ -22,6 +22,14 @@ export const auth = betterAuth({
     schema,
     usePlural: true,
   }),
+  user: {
+    additionalFields: {
+      role: {
+        type: 'string',
+        input: false,
+      },
+    },
+  },
   emailAndPassword: {
     enabled: true,
   },
@@ -30,6 +38,8 @@ export const auth = betterAuth({
       enabled: true,
       clientId: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      accessType: 'offline',
+      prompt: 'select_account consent',
     },
     github: {
       enabled: true,
