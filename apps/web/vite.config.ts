@@ -12,7 +12,11 @@ const config = defineConfig({
     devtools(),
     tsconfigPaths({ projects: ['./tsconfig.json'] }),
     tailwindcss(),
-    tanstackStart(),
+    tanstackStart({
+      spa: {
+        enabled: true,
+      },
+    }),
     viteReact({
       babel: {
         plugins: ['babel-plugin-react-compiler'],
@@ -25,7 +29,6 @@ const config = defineConfig({
     port: 3000,
     proxy: {
       '/api': {
-        rewrite: (path) => path,
         target: process.env.VITE_API_URL,
       },
     },

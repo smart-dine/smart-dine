@@ -59,7 +59,7 @@ export default function ThemeToggle() {
       aria-label={label}
       title={label}
     >
-      <Icon className='size-4' />
+      <Icon className='size-6' />
     </Button>
   );
 }
