@@ -3,7 +3,6 @@ import { pgEnum } from 'drizzle-orm/pg-core';
 import { pgTable, text, timestamp, boolean, index } from 'drizzle-orm/pg-core';
 
 export const userRoles = ['user', 'admin'] as const;
-export type UserRole = (typeof userRoles)[number];
 export const userRoleEnum = pgEnum('user_role', userRoles);
 
 export const users = pgTable('users', {
