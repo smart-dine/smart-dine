@@ -18,10 +18,7 @@ export default function Header() {
         <nav className='hidden items-center gap-5 sm:flex'>
           <Link
             to='/'
-            className='text-muted-foreground hover:text-foreground text-sm font-medium no-underline'
-            activeProps={{
-              className: 'text-foreground text-sm font-medium no-underline',
-            }}
+            className='text-muted-foreground hover:text-foreground [&.active]:text-foreground text-sm font-medium no-underline underline-offset-8 [&.active]:font-semibold [&.active]:underline'
           >
             Home
           </Link>
