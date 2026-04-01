@@ -10,8 +10,7 @@ import { auth } from './lib/auth';
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     DatabaseModule,
-    AuthModule.forRoot({ auth }),
-    AuthModule,
+    AuthModule.forRoot({ auth, isGlobal: true }),
   ],
   controllers: [AppController],
   providers: [AppService],

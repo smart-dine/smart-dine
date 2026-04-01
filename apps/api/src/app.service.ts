@@ -1,12 +1,24 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Version } from '@nestjs/common';
 
 @Injectable()
 export class AppService {
-  getStatus() {
+  @Version('1')
+  getRoot() {
     return {
-      success: true,
+      message: 'SmartDine API v1.0',
+      endpoints: [
+        'GET /api/v1/health - Check API health status',
+        'ALL /api/auth - Authentication endpoints',
+      ],
+    };
+  }
+
+  @Version('1')
+  getHealth() {
+    return {
       status: 'ok',
-      message: 'Welcome to the Smart Dine API',
+      timestamp: new Date().toISOString(),
+      version: '1.0.0',
     };
   }
 }
