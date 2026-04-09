@@ -18,12 +18,14 @@ import { RbacService } from '../rbac/rbac.service';
 import type { CreateOrderDto } from './dto/create-order.dto';
 import type { OrderStatus } from './lib/order-status';
 import type { UserSession } from '@thallesp/nestjs-better-auth';
+import { KioskGateway } from '../realtime/kiosk.gateway';
 
 @Injectable()
 export class OrdersService {
 	constructor(
 		@Inject(DATABASE) private readonly db: Database,
 		private readonly rbacService: RbacService,
+		private readonly kioskGateway: KioskGateway,
 	) {}
 
 	async createOrder({
@@ -90,7 +92,7 @@ export class OrdersService {
 			return order;
 		});
 
-		return await this.db.query.orders.findFirst({
+		const order = await this.db.query.orders.findFirst({
 			where: (orders) => eq(orders.id, createdOrder.id),
 			with: {
 				orderItems: {
@@ -119,6 +121,12 @@ export class OrdersService {
 				},
 			},
 		});
+
+		if (order) {
+			this.kioskGateway.emitOrderCreated(restaurantId, order);
+		}
+
+		return order;
 	}
 
 	async getRestaurantOrders(restaurantId: string, status?: OrderStatus) {
@@ -237,6 +245,12 @@ export class OrdersService {
 			})
 			.where(eq(schema.orders.id, orderId))
 			.returning();
+
+		this.kioskGateway.emitOrderStatusUpdated(updated.restaurantId, updated);
+
+		if (status === 'completed') {
+			this.kioskGateway.emitOrderCompleted(updated.restaurantId, updated);
+		}
 
 		return updated;
 	}
