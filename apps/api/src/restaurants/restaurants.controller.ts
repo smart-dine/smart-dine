@@ -4,13 +4,22 @@ import {
   Controller,
   Delete,
   Get,
+  HttpStatus,
   Param,
+  ParseFilePipeBuilder,
   ParseUUIDPipe,
   Patch,
   Post,
   Query,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { RequireRestaurantPermissions } from '../rbac/decorators/require-permissions.decorator';
+import {
+  ALLOWED_IMAGE_FILE_TYPE_REGEX,
+  MAX_IMAGE_UPLOAD_BYTES,
+} from '../common/constants/upload.constants';
 import { CreateMenuItemDto } from './dto/create-menu-item.dto';
 import { RestaurantsService } from './restaurants.service';
 import { ListRestaurantsDto } from './dto/list-restaurants.dto';
@@ -77,6 +86,35 @@ export class RestaurantsController {
     return this.restaurantsService.addRestaurantImage(restaurantId, body.url);
   }
 
+  @Post(':restaurantId/images/upload')
+  @RequireRestaurantPermissions(['restaurant:update'])
+  @UseInterceptors(
+    FileInterceptor('image', {
+      limits: {
+        fileSize: MAX_IMAGE_UPLOAD_BYTES,
+      },
+    }),
+  )
+  uploadRestaurantImage(
+    @Param('restaurantId', ParseUUIDPipe) restaurantId: string,
+    @UploadedFile(
+      new ParseFilePipeBuilder()
+        .addFileTypeValidator({
+          fileType: ALLOWED_IMAGE_FILE_TYPE_REGEX,
+        })
+        .addMaxSizeValidator({
+          maxSize: MAX_IMAGE_UPLOAD_BYTES,
+        })
+        .build({
+          fileIsRequired: true,
+          errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY,
+        }),
+    )
+    image: Express.Multer.File,
+  ) {
+    return this.restaurantsService.uploadRestaurantImage(restaurantId, image);
+  }
+
   @Delete(':restaurantId/images')
   @RequireRestaurantPermissions(['restaurant:update'])
   removeRestaurantImage(
@@ -93,6 +131,36 @@ export class RestaurantsController {
     @Body() body: CreateMenuItemDto,
   ) {
     return this.restaurantsService.createMenuItem(restaurantId, body);
+  }
+
+  @Post(':restaurantId/menu-items/:menuItemId/image/upload')
+  @RequireRestaurantPermissions(['menu:manage'])
+  @UseInterceptors(
+    FileInterceptor('image', {
+      limits: {
+        fileSize: MAX_IMAGE_UPLOAD_BYTES,
+      },
+    }),
+  )
+  uploadMenuItemImage(
+    @Param('restaurantId', ParseUUIDPipe) restaurantId: string,
+    @Param('menuItemId', ParseUUIDPipe) menuItemId: string,
+    @UploadedFile(
+      new ParseFilePipeBuilder()
+        .addFileTypeValidator({
+          fileType: ALLOWED_IMAGE_FILE_TYPE_REGEX,
+        })
+        .addMaxSizeValidator({
+          maxSize: MAX_IMAGE_UPLOAD_BYTES,
+        })
+        .build({
+          fileIsRequired: true,
+          errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY,
+        }),
+    )
+    image: Express.Multer.File,
+  ) {
+    return this.restaurantsService.uploadMenuItemImage(restaurantId, menuItemId, image);
   }
 
   @Patch(':restaurantId/menu-items/:menuItemId')

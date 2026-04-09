@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { DATABASE } from '../database/lib/definitions';
 import { and, asc, desc, eq, ilike, inArray, or, schema, type Database } from '@smartdine/db';
+import { SpacesStorageService } from '../common/storage/spaces-storage.service';
 import { ListRestaurantsDto } from './dto/list-restaurants.dto';
 import type { CreateMenuItemDto } from './dto/create-menu-item.dto';
 import type { ReplaceFloorPlanDto } from './dto/replace-floor-plan.dto';
@@ -15,7 +16,10 @@ import type { UpdateRestaurantDto } from './dto/update-restaurant.dto';
 
 @Injectable()
 export class RestaurantsService {
-  constructor(@Inject(DATABASE) private readonly db: Database) {}
+  constructor(
+    @Inject(DATABASE) private readonly db: Database,
+    private readonly spacesStorage: SpacesStorageService,
+  ) {}
 
   async findAll({ offset, limit, search }: ListRestaurantsDto) {
     const term = search?.trim();
@@ -239,6 +243,30 @@ export class RestaurantsService {
     return updated;
   }
 
+  async uploadRestaurantImage(restaurantId: string, image: Express.Multer.File) {
+    const restaurant = await this.getRestaurantOrThrow(restaurantId);
+    const uploaded = await this.spacesStorage.uploadRestaurantImage(restaurantId, image);
+
+    try {
+      if (restaurant.images.includes(uploaded.url)) {
+        return restaurant;
+      }
+
+      const [updated] = await this.db
+        .update(schema.restaurants)
+        .set({
+          images: [...restaurant.images, uploaded.url],
+        })
+        .where(eq(schema.restaurants.id, restaurantId))
+        .returning();
+
+      return updated;
+    } catch (error) {
+      await this.tryDeleteUploadedObject(uploaded.key);
+      throw error;
+    }
+  }
+
   async removeRestaurantImage(restaurantId: string, imageUrl: string) {
     const restaurant = await this.getRestaurantOrThrow(restaurantId);
 
@@ -272,6 +300,32 @@ export class RestaurantsService {
       .returning();
 
     return created;
+  }
+
+  async uploadMenuItemImage(restaurantId: string, menuItemId: string, image: Express.Multer.File) {
+    await this.assertMenuItemExists(restaurantId, menuItemId);
+    const uploaded = await this.spacesStorage.uploadMenuItemImage(restaurantId, menuItemId, image);
+
+    try {
+      const [updated] = await this.db
+        .update(schema.menuItems)
+        .set({
+          image: uploaded.url,
+        })
+        .where(
+          and(eq(schema.menuItems.id, menuItemId), eq(schema.menuItems.restaurantId, restaurantId)),
+        )
+        .returning();
+
+      if (!updated) {
+        throw new NotFoundException('Menu item not found for this restaurant');
+      }
+
+      return updated;
+    } catch (error) {
+      await this.tryDeleteUploadedObject(uploaded.key);
+      throw error;
+    }
   }
 
   async updateMenuItem(restaurantId: string, menuItemId: string, dto: UpdateMenuItemDto) {
@@ -353,5 +407,13 @@ export class RestaurantsService {
 
     const maybeCode = (error as { code?: unknown }).code;
     return maybeCode === '23503';
+  }
+
+  private async tryDeleteUploadedObject(key: string) {
+    try {
+      await this.spacesStorage.deleteObjectByKey(key);
+    } catch {
+      return;
+    }
   }
 }
