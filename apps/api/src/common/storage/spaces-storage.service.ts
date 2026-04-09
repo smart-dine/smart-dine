@@ -13,7 +13,8 @@ export class SpacesStorageService {
   constructor(private readonly configService: ConfigService) {
     const region = this.configService.get<string>('DO_SPACES_REGION') ?? 'fra1';
     const endpoint =
-      this.configService.get<string>('DO_SPACES_ENDPOINT') ?? `https://${region}.digitaloceanspaces.com`;
+      this.configService.get<string>('DO_SPACES_ENDPOINT') ??
+      `https://${region}.digitaloceanspaces.com`;
 
     const accessKeyId = this.configService.getOrThrow<string>('DO_SPACES_KEY');
     const secretAccessKey = this.configService.getOrThrow<string>('DO_SPACES_SECRET');
@@ -58,13 +59,7 @@ export class SpacesStorageService {
     );
   }
 
-  private async putImageObject({
-    key,
-    file,
-  }: {
-    key: string;
-    file: Express.Multer.File;
-  }) {
+  private async putImageObject({ key, file }: { key: string; file: Express.Multer.File }) {
     try {
       await this.client.send(
         new PutObjectCommand({

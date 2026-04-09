@@ -161,7 +161,9 @@ export class RestaurantsService {
 
     const unknownIds = [...incomingTableIdSet].filter((id) => !existingTableIdSet.has(id));
     if (unknownIds.length > 0) {
-      throw new NotFoundException('One or more provided table ids were not found for this restaurant');
+      throw new NotFoundException(
+        'One or more provided table ids were not found for this restaurant',
+      );
     }
 
     const tableIdsToDelete = existingTables
