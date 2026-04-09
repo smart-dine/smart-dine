@@ -1,7 +1,7 @@
 import { Pool } from 'pg';
 import * as schema from './schema';
 import { drizzle as drizzleNeon } from 'drizzle-orm/neon-http';
-import { drizzle } from 'drizzle-orm/node-postgres';
+import { drizzle, NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { neon } from '@neondatabase/serverless';
 
 const createDatabase = (connectionString: string, type: 'postgresql' | 'neon' = 'postgresql') => {
@@ -23,4 +23,6 @@ const createDatabase = (connectionString: string, type: 'postgresql' | 'neon' = 
   }
 };
 
+export type Database = NodePgDatabase<typeof schema>;
 export { schema, createDatabase };
+export * from 'drizzle-orm';
