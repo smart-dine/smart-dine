@@ -1,0 +1,1 @@
+export const RESERVATION_SLOT_MINUTES = 90;
