@@ -14,6 +14,7 @@ import { RequireRestaurantPermissions } from '../rbac/decorators/require-permiss
 import { CreateMenuItemDto } from './dto/create-menu-item.dto';
 import { RestaurantsService } from './restaurants.service';
 import { ListRestaurantsDto } from './dto/list-restaurants.dto';
+import { ReplaceFloorPlanDto } from './dto/replace-floor-plan.dto';
 import { UpdateMenuItemDto } from './dto/update-menu-item.dto';
 import { UpdateRestaurantDto } from './dto/update-restaurant.dto';
 import { UpdateRestaurantImageDto } from './dto/update-restaurant-image.dto';
@@ -56,6 +57,15 @@ export class RestaurantsController {
     @Body() body: UpdateRestaurantDto,
   ) {
     return this.restaurantsService.updateRestaurant(restaurantId, body);
+  }
+
+  @Patch(':restaurantId/floor-plan')
+  @RequireRestaurantPermissions(['restaurant:update'])
+  replaceFloorPlan(
+    @Param('restaurantId', ParseUUIDPipe) restaurantId: string,
+    @Body() body: ReplaceFloorPlanDto,
+  ) {
+    return this.restaurantsService.replaceFloorPlan(restaurantId, body);
   }
 
   @Post(':restaurantId/images')

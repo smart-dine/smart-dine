@@ -1,8 +1,15 @@
-import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { DATABASE } from '../database/lib/definitions';
-import { and, asc, desc, eq, ilike, or, schema, type Database } from '@smartdine/db';
+import { and, asc, desc, eq, ilike, inArray, or, schema, type Database } from '@smartdine/db';
 import { ListRestaurantsDto } from './dto/list-restaurants.dto';
 import type { CreateMenuItemDto } from './dto/create-menu-item.dto';
+import type { ReplaceFloorPlanDto } from './dto/replace-floor-plan.dto';
 import type { UpdateMenuItemDto } from './dto/update-menu-item.dto';
 import type { UpdateRestaurantDto } from './dto/update-restaurant.dto';
 
@@ -124,6 +131,94 @@ export class RestaurantsService {
       .returning();
 
     return updated;
+  }
+
+  async replaceFloorPlan(restaurantId: string, dto: ReplaceFloorPlanDto) {
+    await this.assertRestaurantExists(restaurantId);
+
+    const normalizedTableNumbers = new Set<string>();
+    for (const table of dto.tables) {
+      const normalized = table.tableNumber.trim().toLowerCase();
+      if (normalizedTableNumbers.has(normalized)) {
+        throw new BadRequestException('Floor plan payload contains duplicate table numbers');
+      }
+      normalizedTableNumbers.add(normalized);
+    }
+
+    const existingTables = await this.db.query.restaurantTables.findMany({
+      columns: {
+        id: true,
+      },
+      where: (tables) => eq(tables.restaurantId, restaurantId),
+    });
+
+    const existingTableIdSet = new Set(existingTables.map((table) => table.id));
+    const incomingTableIdSet = new Set(dto.tables.flatMap((table) => (table.id ? [table.id] : [])));
+
+    const unknownIds = [...incomingTableIdSet].filter((id) => !existingTableIdSet.has(id));
+    if (unknownIds.length > 0) {
+      throw new NotFoundException('One or more provided table ids were not found for this restaurant');
+    }
+
+    const tableIdsToDelete = existingTables
+      .map((table) => table.id)
+      .filter((id) => !incomingTableIdSet.has(id));
+
+    try {
+      return await this.db.transaction(async (tx) => {
+        if (tableIdsToDelete.length > 0) {
+          await tx
+            .delete(schema.restaurantTables)
+            .where(
+              and(
+                eq(schema.restaurantTables.restaurantId, restaurantId),
+                inArray(schema.restaurantTables.id, tableIdsToDelete),
+              ),
+            );
+        }
+
+        for (const table of dto.tables) {
+          const row = {
+            tableNumber: table.tableNumber.trim(),
+            capacity: table.capacity,
+            xCoordinate: table.xCoordinate,
+            yCoordinate: table.yCoordinate,
+            shape: table.shape,
+          };
+
+          if (table.id) {
+            await tx
+              .update(schema.restaurantTables)
+              .set(row)
+              .where(
+                and(
+                  eq(schema.restaurantTables.id, table.id),
+                  eq(schema.restaurantTables.restaurantId, restaurantId),
+                ),
+              );
+            continue;
+          }
+
+          await tx.insert(schema.restaurantTables).values({
+            restaurantId,
+            ...row,
+          });
+        }
+
+        return await tx.query.restaurantTables.findMany({
+          where: (tables) => eq(tables.restaurantId, restaurantId),
+          orderBy: (tables) => asc(tables.tableNumber),
+        });
+      });
+    } catch (error: unknown) {
+      if (this.isForeignKeyViolation(error)) {
+        throw new ConflictException(
+          'Cannot remove one or more tables because reservations or orders still reference them',
+        );
+      }
+
+      throw error;
+    }
   }
 
   async addRestaurantImage(restaurantId: string, imageUrl: string) {
@@ -249,5 +344,14 @@ export class RestaurantsService {
     if (!restaurant) {
       throw new NotFoundException('Restaurant not found');
     }
+  }
+
+  private isForeignKeyViolation(error: unknown) {
+    if (typeof error !== 'object' || error === null) {
+      return false;
+    }
+
+    const maybeCode = (error as { code?: unknown }).code;
+    return maybeCode === '23503';
   }
 }
