@@ -75,7 +75,10 @@ export class RbacGuard implements CanActivate {
     );
   }
 
-  private getStringValue(source: Record<string, unknown> | undefined, key: string): string | undefined {
+  private getStringValue(
+    source: Record<string, unknown> | undefined,
+    key: string,
+  ): string | undefined {
     if (!source) {
       return undefined;
     }

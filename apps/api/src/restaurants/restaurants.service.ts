@@ -8,245 +8,246 @@ import type { UpdateRestaurantDto } from './dto/update-restaurant.dto';
 
 @Injectable()
 export class RestaurantsService {
-	constructor(@Inject(DATABASE) private readonly db: Database) {}
+  constructor(@Inject(DATABASE) private readonly db: Database) {}
 
-	async findAll({ offset, limit, search }: ListRestaurantsDto) {
-		const term = search?.trim();
+  async findAll({ offset, limit, search }: ListRestaurantsDto) {
+    const term = search?.trim();
 
-		return await this.db.query.restaurants.findMany({
-			columns: {
-				id: true,
-				name: true,
-				description: true,
-				address: true,
-				phone: true,
-				images: true,
-				openingHours: true,
-				createdAt: true,
-			},
-			where: term
-				? (restaurants) =>
-						or(
-							ilike(restaurants.name, `%${term}%`),
-							ilike(restaurants.description, `%${term}%`),
-							ilike(restaurants.address, `%${term}%`),
-							ilike(restaurants.phone, `%${term}%`),
-						)
-				: undefined,
-			orderBy: (restaurants) => desc(restaurants.createdAt),
-			offset,
-			limit,
-		});
-	}
+    return await this.db.query.restaurants.findMany({
+      columns: {
+        id: true,
+        name: true,
+        description: true,
+        address: true,
+        phone: true,
+        images: true,
+        openingHours: true,
+        createdAt: true,
+      },
+      where: term
+        ? (restaurants) =>
+            or(
+              ilike(restaurants.name, `%${term}%`),
+              ilike(restaurants.description, `%${term}%`),
+              ilike(restaurants.address, `%${term}%`),
+              ilike(restaurants.phone, `%${term}%`),
+            )
+        : undefined,
+      orderBy: (restaurants) => desc(restaurants.createdAt),
+      offset,
+      limit,
+    });
+  }
 
-	async findOne(restaurantId: string) {
-		const restaurant = await this.db.query.restaurants.findFirst({
-			where: (restaurants) => eq(restaurants.id, restaurantId),
-			with: {
-				menuItems: {
-					columns: {
-						id: true,
-						name: true,
-						description: true,
-						price: true,
-						image: true,
-						isAvailable: true,
-					},
-					orderBy: (menuItems) => asc(menuItems.name),
-				},
-			},
-		});
+  async findOne(restaurantId: string) {
+    const restaurant = await this.db.query.restaurants.findFirst({
+      where: (restaurants) => eq(restaurants.id, restaurantId),
+      with: {
+        menuItems: {
+          columns: {
+            id: true,
+            name: true,
+            description: true,
+            price: true,
+            image: true,
+            isAvailable: true,
+          },
+          orderBy: (menuItems) => asc(menuItems.name),
+        },
+      },
+    });
 
-		if (!restaurant) {
-			throw new NotFoundException('Restaurant not found');
-		}
+    if (!restaurant) {
+      throw new NotFoundException('Restaurant not found');
+    }
 
-		return restaurant;
-	}
+    return restaurant;
+  }
 
-	async findMenuItems(restaurantId: string) {
-		await this.assertRestaurantExists(restaurantId);
+  async findMenuItems(restaurantId: string) {
+    await this.assertRestaurantExists(restaurantId);
 
-		return await this.db.query.menuItems.findMany({
-			where: (menuItems) => eq(menuItems.restaurantId, restaurantId),
-			orderBy: (menuItems) => asc(menuItems.name),
-		});
-	}
+    return await this.db.query.menuItems.findMany({
+      where: (menuItems) => eq(menuItems.restaurantId, restaurantId),
+      orderBy: (menuItems) => asc(menuItems.name),
+    });
+  }
 
-	async findFloorMap(restaurantId: string) {
-		const restaurant = await this.db.query.restaurants.findFirst({
-			columns: {
-				id: true,
-				name: true,
-				openingHours: true,
-			},
-			where: (restaurants) => eq(restaurants.id, restaurantId),
-			with: {
-				tables: {
-					columns: {
-						id: true,
-						tableNumber: true,
-						capacity: true,
-						xCoordinate: true,
-						yCoordinate: true,
-						shape: true,
-					},
-					orderBy: (tables) => asc(tables.tableNumber),
-				},
-			},
-		});
+  async findFloorMap(restaurantId: string) {
+    const restaurant = await this.db.query.restaurants.findFirst({
+      columns: {
+        id: true,
+        name: true,
+        openingHours: true,
+      },
+      where: (restaurants) => eq(restaurants.id, restaurantId),
+      with: {
+        tables: {
+          columns: {
+            id: true,
+            tableNumber: true,
+            capacity: true,
+            xCoordinate: true,
+            yCoordinate: true,
+            shape: true,
+          },
+          orderBy: (tables) => asc(tables.tableNumber),
+        },
+      },
+    });
 
-		if (!restaurant) {
-			throw new NotFoundException('Restaurant not found');
-		}
+    if (!restaurant) {
+      throw new NotFoundException('Restaurant not found');
+    }
 
-		return restaurant;
-	}
+    return restaurant;
+  }
 
-	async updateRestaurant(restaurantId: string, dto: UpdateRestaurantDto) {
-		await this.assertRestaurantExists(restaurantId);
+  async updateRestaurant(restaurantId: string, dto: UpdateRestaurantDto) {
+    await this.assertRestaurantExists(restaurantId);
 
-		if (Object.keys(dto).length === 0) {
-			throw new BadRequestException('No restaurant fields were provided for update');
-		}
+    if (Object.keys(dto).length === 0) {
+      throw new BadRequestException('No restaurant fields were provided for update');
+    }
 
-		const [updated] = await this.db
-			.update(schema.restaurants)
-			.set({
-				name: dto.name,
-				description: dto.description,
-				address: dto.address,
-				phone: dto.phone,
-				openingHours: dto.openingHours,
-				images: dto.images,
-			})
-			.where(eq(schema.restaurants.id, restaurantId))
-			.returning();
+    const [updated] = await this.db
+      .update(schema.restaurants)
+      .set({
+        name: dto.name,
+        description: dto.description,
+        address: dto.address,
+        phone: dto.phone,
+        openingHours: dto.openingHours,
+        images: dto.images,
+      })
+      .where(eq(schema.restaurants.id, restaurantId))
+      .returning();
 
-		return updated;
-	}
+    return updated;
+  }
 
-	async addRestaurantImage(restaurantId: string, imageUrl: string) {
-		const restaurant = await this.getRestaurantOrThrow(restaurantId);
+  async addRestaurantImage(restaurantId: string, imageUrl: string) {
+    const restaurant = await this.getRestaurantOrThrow(restaurantId);
 
-		if (restaurant.images.includes(imageUrl)) {
-			return restaurant;
-		}
+    if (restaurant.images.includes(imageUrl)) {
+      return restaurant;
+    }
 
-		const [updated] = await this.db
-			.update(schema.restaurants)
-			.set({
-				images: [...restaurant.images, imageUrl],
-			})
-			.where(eq(schema.restaurants.id, restaurantId))
-			.returning();
+    const [updated] = await this.db
+      .update(schema.restaurants)
+      .set({
+        images: [...restaurant.images, imageUrl],
+      })
+      .where(eq(schema.restaurants.id, restaurantId))
+      .returning();
 
-		return updated;
-	}
+    return updated;
+  }
 
-	async removeRestaurantImage(restaurantId: string, imageUrl: string) {
-		const restaurant = await this.getRestaurantOrThrow(restaurantId);
+  async removeRestaurantImage(restaurantId: string, imageUrl: string) {
+    const restaurant = await this.getRestaurantOrThrow(restaurantId);
 
-		const nextImages = restaurant.images.filter((image) => image !== imageUrl);
-		if (nextImages.length === restaurant.images.length) {
-			throw new NotFoundException('Image URL was not found on this restaurant');
-		}
+    const nextImages = restaurant.images.filter((image) => image !== imageUrl);
+    if (nextImages.length === restaurant.images.length) {
+      throw new NotFoundException('Image URL was not found on this restaurant');
+    }
 
-		const [updated] = await this.db
-			.update(schema.restaurants)
-			.set({ images: nextImages })
-			.where(eq(schema.restaurants.id, restaurantId))
-			.returning();
+    const [updated] = await this.db
+      .update(schema.restaurants)
+      .set({ images: nextImages })
+      .where(eq(schema.restaurants.id, restaurantId))
+      .returning();
 
-		return updated;
-	}
+    return updated;
+  }
 
-	async createMenuItem(restaurantId: string, dto: CreateMenuItemDto) {
-		await this.assertRestaurantExists(restaurantId);
+  async createMenuItem(restaurantId: string, dto: CreateMenuItemDto) {
+    await this.assertRestaurantExists(restaurantId);
 
-		const [created] = await this.db
-			.insert(schema.menuItems)
-			.values({
-				restaurantId,
-				name: dto.name,
-				description: dto.description ?? null,
-				price: dto.price,
-				isAvailable: dto.isAvailable ?? true,
-				image: dto.image ?? null,
-			})
-			.returning();
+    const [created] = await this.db
+      .insert(schema.menuItems)
+      .values({
+        restaurantId,
+        name: dto.name,
+        description: dto.description ?? null,
+        price: dto.price,
+        isAvailable: dto.isAvailable ?? true,
+        image: dto.image ?? null,
+      })
+      .returning();
 
-		return created;
-	}
+    return created;
+  }
 
-	async updateMenuItem(restaurantId: string, menuItemId: string, dto: UpdateMenuItemDto) {
-		if (Object.keys(dto).length === 0) {
-			throw new BadRequestException('No menu item fields were provided for update');
-		}
+  async updateMenuItem(restaurantId: string, menuItemId: string, dto: UpdateMenuItemDto) {
+    if (Object.keys(dto).length === 0) {
+      throw new BadRequestException('No menu item fields were provided for update');
+    }
 
-		await this.assertMenuItemExists(restaurantId, menuItemId);
+    await this.assertMenuItemExists(restaurantId, menuItemId);
 
-		const [updated] = await this.db
-			.update(schema.menuItems)
-			.set({
-				name: dto.name,
-				description: dto.description,
-				price: dto.price,
-				isAvailable: dto.isAvailable,
-				image: dto.image,
-			})
-			.where(eq(schema.menuItems.id, menuItemId))
-			.returning();
+    const [updated] = await this.db
+      .update(schema.menuItems)
+      .set({
+        name: dto.name,
+        description: dto.description,
+        price: dto.price,
+        isAvailable: dto.isAvailable,
+        image: dto.image,
+      })
+      .where(eq(schema.menuItems.id, menuItemId))
+      .returning();
 
-		return updated;
-	}
+    return updated;
+  }
 
-	async deleteMenuItem(restaurantId: string, menuItemId: string) {
-		await this.assertMenuItemExists(restaurantId, menuItemId);
+  async deleteMenuItem(restaurantId: string, menuItemId: string) {
+    await this.assertMenuItemExists(restaurantId, menuItemId);
 
-		const [deleted] = await this.db
-			.delete(schema.menuItems)
-			.where(eq(schema.menuItems.id, menuItemId))
-			.returning();
+    const [deleted] = await this.db
+      .delete(schema.menuItems)
+      .where(eq(schema.menuItems.id, menuItemId))
+      .returning();
 
-		return deleted;
-	}
+    return deleted;
+  }
 
-	private async getRestaurantOrThrow(restaurantId: string) {
-		const restaurant = await this.db.query.restaurants.findFirst({
-			where: (restaurants) => eq(restaurants.id, restaurantId),
-		});
+  private async getRestaurantOrThrow(restaurantId: string) {
+    const restaurant = await this.db.query.restaurants.findFirst({
+      where: (restaurants) => eq(restaurants.id, restaurantId),
+    });
 
-		if (!restaurant) {
-			throw new NotFoundException('Restaurant not found');
-		}
+    if (!restaurant) {
+      throw new NotFoundException('Restaurant not found');
+    }
 
-		return restaurant;
-	}
+    return restaurant;
+  }
 
-	private async assertMenuItemExists(restaurantId: string, menuItemId: string) {
-		const menuItem = await this.db.query.menuItems.findFirst({
-			columns: {
-				id: true,
-			},
-			where: (menuItems) => and(eq(menuItems.id, menuItemId), eq(menuItems.restaurantId, restaurantId)),
-		});
+  private async assertMenuItemExists(restaurantId: string, menuItemId: string) {
+    const menuItem = await this.db.query.menuItems.findFirst({
+      columns: {
+        id: true,
+      },
+      where: (menuItems) =>
+        and(eq(menuItems.id, menuItemId), eq(menuItems.restaurantId, restaurantId)),
+    });
 
-		if (!menuItem) {
-			throw new NotFoundException('Menu item not found for this restaurant');
-		}
-	}
+    if (!menuItem) {
+      throw new NotFoundException('Menu item not found for this restaurant');
+    }
+  }
 
-	private async assertRestaurantExists(restaurantId: string) {
-		const restaurant = await this.db.query.restaurants.findFirst({
-			columns: {
-				id: true,
-			},
-			where: (restaurants) => eq(restaurants.id, restaurantId),
-		});
+  private async assertRestaurantExists(restaurantId: string) {
+    const restaurant = await this.db.query.restaurants.findFirst({
+      columns: {
+        id: true,
+      },
+      where: (restaurants) => eq(restaurants.id, restaurantId),
+    });
 
-		if (!restaurant) {
-			throw new NotFoundException('Restaurant not found');
-		}
-	}
+    if (!restaurant) {
+      throw new NotFoundException('Restaurant not found');
+    }
+  }
 }

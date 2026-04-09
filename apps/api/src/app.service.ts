@@ -9,6 +9,15 @@ export class AppService {
       endpoints: [
         'GET /api/v1/health - Check API health status',
         'ALL /api/auth - Authentication endpoints',
+        'GET /api/v1/restaurants - Public restaurant discovery',
+        'POST /api/v1/restaurants/:restaurantId/reservations - Create reservation (auth)',
+        'POST /api/v1/restaurants/:restaurantId/orders - Create order (staff)',
+        'GET /api/v1/my/restaurants - Staff and owner restaurant list',
+        'GET /api/v1/admin/* - Site administration endpoints',
+      ],
+      websocket: [
+        'namespace: /kiosk',
+        'events: kiosk.join, order.created, order.status.updated, order.completed',
       ],
     };
   }

@@ -43,6 +43,7 @@ describe('AppController', () => {
       const result = {
         message: 'SmartDine API v1.0',
         endpoints: ['GET /api/v1/test - Test endpoint'],
+        websocket: ['namespace: /kiosk'],
       };
       jest.spyOn(service, 'getRoot').mockReturnValue(result);
 

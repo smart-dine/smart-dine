@@ -25,7 +25,8 @@ export class RbacService {
       columns: {
         role: true,
       },
-      where: (staffRoles) => and(eq(staffRoles.userId, userId), eq(staffRoles.restaurantId, restaurantId)),
+      where: (staffRoles) =>
+        and(eq(staffRoles.userId, userId), eq(staffRoles.restaurantId, restaurantId)),
     });
 
     if (!staffMember) {
@@ -35,7 +36,11 @@ export class RbacService {
     return isRestaurantRole(staffMember.role) ? staffMember.role : null;
   }
 
-  async hasPermissions({ session, permissions, restaurantId }: PermissionCheckInput): Promise<boolean> {
+  async hasPermissions({
+    session,
+    permissions,
+    restaurantId,
+  }: PermissionCheckInput): Promise<boolean> {
     if (permissions.length === 0) {
       return true;
     }

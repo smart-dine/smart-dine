@@ -1,5 +1,13 @@
 import { Type } from 'class-transformer';
-import { IsArray, IsOptional, IsString, IsUrl, Matches, MaxLength, ValidateNested } from 'class-validator';
+import {
+  IsArray,
+  IsOptional,
+  IsString,
+  IsUrl,
+  Matches,
+  MaxLength,
+  ValidateNested,
+} from 'class-validator';
 import { OpeningHoursDto } from '../../common/dto/opening-hours.dto';
 
 export class CreateAdminRestaurantDto {

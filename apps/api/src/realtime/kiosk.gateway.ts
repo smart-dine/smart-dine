@@ -75,7 +75,7 @@ export class KioskGateway implements OnGatewayConnection, OnGatewayDisconnect {
       throw new WsException('You do not have access to this restaurant kiosk');
     }
 
-    client.join(this.roomName(payload.restaurantId));
+    await client.join(this.roomName(payload.restaurantId));
 
     return {
       joined: true,

@@ -1,6 +1,9 @@
 import { Controller, Get, Param } from '@nestjs/common';
 import { Session, type UserSession } from '@thallesp/nestjs-better-auth';
-import { RequirePermissions, RequireRestaurantPermissions } from './decorators/require-permissions.decorator';
+import {
+  RequirePermissions,
+  RequireRestaurantPermissions,
+} from './decorators/require-permissions.decorator';
 
 @Controller({
   path: 'rbac',
@@ -17,7 +20,10 @@ export class RbacController {
 
   @Get('restaurants/:restaurantId/dashboard')
   @RequireRestaurantPermissions(['restaurant:read'])
-  getRestaurantDashboard(@Param('restaurantId') restaurantId: string, @Session() session: UserSession) {
+  getRestaurantDashboard(
+    @Param('restaurantId') restaurantId: string,
+    @Session() session: UserSession,
+  ) {
     return {
       allowed: true,
       restaurantId,
@@ -28,7 +34,10 @@ export class RbacController {
 
   @Get('restaurants/:restaurantId/staff')
   @RequireRestaurantPermissions(['staff:manage'])
-  getRestaurantStaffPanel(@Param('restaurantId') restaurantId: string, @Session() session: UserSession) {
+  getRestaurantStaffPanel(
+    @Param('restaurantId') restaurantId: string,
+    @Session() session: UserSession,
+  ) {
     return {
       allowed: true,
       restaurantId,

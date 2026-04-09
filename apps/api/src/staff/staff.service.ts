@@ -6,153 +6,153 @@ import type { UpsertStaffRoleDto } from './dto/upsert-staff-role.dto';
 
 @Injectable()
 export class StaffService {
-	constructor(@Inject(DATABASE) private readonly db: Database) {}
+  constructor(@Inject(DATABASE) private readonly db: Database) {}
 
-	async getMyRestaurants(userId: string) {
-		return await this.db.query.staffRoles.findMany({
-			where: (staffRoles) => eq(staffRoles.userId, userId),
-			with: {
-				restaurant: {
-					columns: {
-						id: true,
-						name: true,
-						description: true,
-						address: true,
-						phone: true,
-						images: true,
-					},
-				},
-			},
-		});
-	}
+  async getMyRestaurants(userId: string) {
+    return await this.db.query.staffRoles.findMany({
+      where: (staffRoles) => eq(staffRoles.userId, userId),
+      with: {
+        restaurant: {
+          columns: {
+            id: true,
+            name: true,
+            description: true,
+            address: true,
+            phone: true,
+            images: true,
+          },
+        },
+      },
+    });
+  }
 
-	async getRestaurantStaff(restaurantId: string) {
-		await this.assertRestaurantExists(restaurantId);
+  async getRestaurantStaff(restaurantId: string) {
+    await this.assertRestaurantExists(restaurantId);
 
-		return await this.db.query.staffRoles.findMany({
-			where: (staffRoles) => eq(staffRoles.restaurantId, restaurantId),
-			with: {
-				user: {
-					columns: {
-						id: true,
-						name: true,
-						email: true,
-						image: true,
-						role: true,
-					},
-				},
-			},
-		});
-	}
+    return await this.db.query.staffRoles.findMany({
+      where: (staffRoles) => eq(staffRoles.restaurantId, restaurantId),
+      with: {
+        user: {
+          columns: {
+            id: true,
+            name: true,
+            email: true,
+            image: true,
+            role: true,
+          },
+        },
+      },
+    });
+  }
 
-	async addStaffRole(restaurantId: string, dto: UpsertStaffRoleDto) {
-		await this.assertRestaurantExists(restaurantId);
+  async addStaffRole(restaurantId: string, dto: UpsertStaffRoleDto) {
+    await this.assertRestaurantExists(restaurantId);
 
-		const user = await this.db.query.users.findFirst({
-			columns: {
-				id: true,
-			},
-			where: (users) => eq(users.id, dto.userId),
-		});
+    const user = await this.db.query.users.findFirst({
+      columns: {
+        id: true,
+      },
+      where: (users) => eq(users.id, dto.userId),
+    });
 
-		if (!user) {
-			throw new NotFoundException('User not found');
-		}
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
 
-		const existing = await this.db.query.staffRoles.findFirst({
-			columns: {
-				id: true,
-			},
-			where: (staffRoles) =>
-				and(eq(staffRoles.restaurantId, restaurantId), eq(staffRoles.userId, dto.userId)),
-		});
+    const existing = await this.db.query.staffRoles.findFirst({
+      columns: {
+        id: true,
+      },
+      where: (staffRoles) =>
+        and(eq(staffRoles.restaurantId, restaurantId), eq(staffRoles.userId, dto.userId)),
+    });
 
-		if (existing) {
-			throw new BadRequestException('User is already assigned to this restaurant');
-		}
+    if (existing) {
+      throw new BadRequestException('User is already assigned to this restaurant');
+    }
 
-		const [created] = await this.db
-			.insert(schema.staffRoles)
-			.values({
-				restaurantId,
-				userId: dto.userId,
-				role: dto.role,
-			})
-			.returning();
+    const [created] = await this.db
+      .insert(schema.staffRoles)
+      .values({
+        restaurantId,
+        userId: dto.userId,
+        role: dto.role,
+      })
+      .returning();
 
-		return created;
-	}
+    return created;
+  }
 
-	async updateStaffRole(restaurantId: string, staffRoleId: string, dto: UpdateStaffRoleDto) {
-		const existing = await this.getStaffRoleOrThrow(restaurantId, staffRoleId);
+  async updateStaffRole(restaurantId: string, staffRoleId: string, dto: UpdateStaffRoleDto) {
+    const existing = await this.getStaffRoleOrThrow(restaurantId, staffRoleId);
 
-		if (existing.role === 'owner' && dto.role !== 'owner') {
-			await this.assertHasMultipleOwners(restaurantId);
-		}
+    if (existing.role === 'owner' && dto.role !== 'owner') {
+      await this.assertHasMultipleOwners(restaurantId);
+    }
 
-		const [updated] = await this.db
-			.update(schema.staffRoles)
-			.set({
-				role: dto.role,
-			})
-			.where(eq(schema.staffRoles.id, staffRoleId))
-			.returning();
+    const [updated] = await this.db
+      .update(schema.staffRoles)
+      .set({
+        role: dto.role,
+      })
+      .where(eq(schema.staffRoles.id, staffRoleId))
+      .returning();
 
-		return updated;
-	}
+    return updated;
+  }
 
-	async removeStaffRole(restaurantId: string, staffRoleId: string) {
-		const existing = await this.getStaffRoleOrThrow(restaurantId, staffRoleId);
+  async removeStaffRole(restaurantId: string, staffRoleId: string) {
+    const existing = await this.getStaffRoleOrThrow(restaurantId, staffRoleId);
 
-		if (existing.role === 'owner') {
-			await this.assertHasMultipleOwners(restaurantId);
-		}
+    if (existing.role === 'owner') {
+      await this.assertHasMultipleOwners(restaurantId);
+    }
 
-		const [deleted] = await this.db
-			.delete(schema.staffRoles)
-			.where(eq(schema.staffRoles.id, staffRoleId))
-			.returning();
+    const [deleted] = await this.db
+      .delete(schema.staffRoles)
+      .where(eq(schema.staffRoles.id, staffRoleId))
+      .returning();
 
-		return deleted;
-	}
+    return deleted;
+  }
 
-	private async assertRestaurantExists(restaurantId: string) {
-		const restaurant = await this.db.query.restaurants.findFirst({
-			columns: {
-				id: true,
-			},
-			where: (restaurants) => eq(restaurants.id, restaurantId),
-		});
+  private async assertRestaurantExists(restaurantId: string) {
+    const restaurant = await this.db.query.restaurants.findFirst({
+      columns: {
+        id: true,
+      },
+      where: (restaurants) => eq(restaurants.id, restaurantId),
+    });
 
-		if (!restaurant) {
-			throw new NotFoundException('Restaurant not found');
-		}
-	}
+    if (!restaurant) {
+      throw new NotFoundException('Restaurant not found');
+    }
+  }
 
-	private async getStaffRoleOrThrow(restaurantId: string, staffRoleId: string) {
-		const staffRole = await this.db.query.staffRoles.findFirst({
-			where: (staffRoles) =>
-				and(eq(staffRoles.id, staffRoleId), eq(staffRoles.restaurantId, restaurantId)),
-		});
+  private async getStaffRoleOrThrow(restaurantId: string, staffRoleId: string) {
+    const staffRole = await this.db.query.staffRoles.findFirst({
+      where: (staffRoles) =>
+        and(eq(staffRoles.id, staffRoleId), eq(staffRoles.restaurantId, restaurantId)),
+    });
 
-		if (!staffRole) {
-			throw new NotFoundException('Staff assignment not found');
-		}
+    if (!staffRole) {
+      throw new NotFoundException('Staff assignment not found');
+    }
 
-		return staffRole;
-	}
+    return staffRole;
+  }
 
-	private async assertHasMultipleOwners(restaurantId: string) {
-		const owners = await this.db.query.staffRoles.findMany({
-			columns: {
-				id: true,
-			},
-			where: (staffRoles) =>
-				and(eq(staffRoles.restaurantId, restaurantId), eq(staffRoles.role, 'owner')),
-		});
+  private async assertHasMultipleOwners(restaurantId: string) {
+    const owners = await this.db.query.staffRoles.findMany({
+      columns: {
+        id: true,
+      },
+      where: (staffRoles) =>
+        and(eq(staffRoles.restaurantId, restaurantId), eq(staffRoles.role, 'owner')),
+    });
 
-		if (owners.length <= 1) {
-			throw new BadRequestException('Restaurant must always have at least one owner');
-		}
-	}
+    if (owners.length <= 1) {
+      throw new BadRequestException('Restaurant must always have at least one owner');
+    }
+  }
 }

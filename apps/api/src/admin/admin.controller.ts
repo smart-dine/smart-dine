@@ -1,4 +1,14 @@
-import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  ParseUUIDPipe,
+  Patch,
+  Post,
+  Query,
+} from '@nestjs/common';
 import { RequirePermissions } from '../rbac/decorators/require-permissions.decorator';
 import { AdminService } from './admin.service';
 import { CreateAdminRestaurantDto } from './dto/create-admin-restaurant.dto';

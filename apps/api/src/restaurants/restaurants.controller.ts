@@ -1,5 +1,15 @@
 import { AllowAnonymous } from '@thallesp/nestjs-better-auth';
-import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  ParseUUIDPipe,
+  Patch,
+  Post,
+  Query,
+} from '@nestjs/common';
 import { RequireRestaurantPermissions } from '../rbac/decorators/require-permissions.decorator';
 import { CreateMenuItemDto } from './dto/create-menu-item.dto';
 import { RestaurantsService } from './restaurants.service';
