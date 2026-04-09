@@ -2,9 +2,9 @@ import { Type } from 'class-transformer';
 import {
   IsArray,
   IsOptional,
+  IsPhoneNumber,
   IsString,
   IsUrl,
-  Matches,
   MaxLength,
   ValidateNested,
 } from 'class-validator';
@@ -24,7 +24,7 @@ export class CreateAdminRestaurantDto {
   @MaxLength(500)
   address!: string;
 
-  @Matches(/^\+?[0-9()\-\s]{7,25}$/)
+  @IsPhoneNumber()
   phone!: string;
 
   @ValidateNested()
