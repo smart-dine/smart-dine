@@ -5,20 +5,25 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { and, desc, eq, inArray, schema, type Database } from '@smartdine/db';
 import { DATABASE } from '../database/lib/definitions';
 import { RbacService } from '../rbac/rbac.service';
 import type { CreateOrderDto } from './dto/create-order.dto';
 import type { OrderStatus } from './lib/order-status';
 import type { UserSession } from '@thallesp/nestjs-better-auth';
-import { KioskGateway } from '../realtime/kiosk.gateway';
+import {
+  ORDER_COMPLETED_EVENT,
+  ORDER_CREATED_EVENT,
+  ORDER_STATUS_UPDATED_EVENT,
+} from './lib/order-events';
 
 @Injectable()
 export class OrdersService {
   constructor(
     @Inject(DATABASE) private readonly db: Database,
     private readonly rbacService: RbacService,
-    private readonly kioskGateway: KioskGateway,
+    private readonly events: EventEmitter2,
   ) {}
 
   async createOrder({
@@ -118,7 +123,10 @@ export class OrdersService {
     });
 
     if (order) {
-      this.kioskGateway.emitOrderCreated(restaurantId, order);
+      this.events.emit(ORDER_CREATED_EVENT, {
+        restaurantId,
+        payload: order,
+      });
     }
 
     return order;
@@ -241,10 +249,16 @@ export class OrdersService {
       .where(eq(schema.orders.id, orderId))
       .returning();
 
-    this.kioskGateway.emitOrderStatusUpdated(updated.restaurantId, updated);
+    this.events.emit(ORDER_STATUS_UPDATED_EVENT, {
+      restaurantId: updated.restaurantId,
+      payload: updated,
+    });
 
     if (status === 'completed') {
-      this.kioskGateway.emitOrderCompleted(updated.restaurantId, updated);
+      this.events.emit(ORDER_COMPLETED_EVENT, {
+        restaurantId: updated.restaurantId,
+        payload: updated,
+      });
     }
 
     return updated;

@@ -12,10 +12,12 @@ import { StaffModule } from './staff/staff.module';
 import { AdminModule } from './admin/admin.module';
 import { RbacModule } from './rbac/rbac.module';
 import { RealtimeModule } from './realtime/realtime.module';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    EventEmitterModule.forRoot(),
     DatabaseModule,
     AuthModule.forRoot({ auth, isGlobal: true }),
     RbacModule,
