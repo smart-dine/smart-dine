@@ -110,6 +110,13 @@ export type RestaurantOrder = Jsonify<
   }
 >;
 
+export type RestaurantOrderStatusPatch = Jsonify<
+  Pick<
+    OrderRow,
+    'id' | 'restaurantId' | 'tableId' | 'operatorId' | 'status' | 'totalAmount' | 'createdAt' | 'completedAt'
+  >
+>;
+
 export interface PaginationQueryInput {
   offset?: number;
   limit?: number;
