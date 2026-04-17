@@ -5,31 +5,30 @@ import { extname } from 'node:path';
 import { randomUUID } from 'node:crypto';
 
 @Injectable()
-export class SpacesStorageService {
+export class R2StorageService {
   private readonly client: S3Client;
   private readonly bucket: string;
   private readonly publicBaseUrl: string;
 
   constructor(private readonly configService: ConfigService) {
-    const region = this.configService.get<string>('DO_SPACES_REGION') ?? 'fra1';
-    const endpoint =
-      this.configService.get<string>('DO_SPACES_ENDPOINT') ??
-      `https://${region}.digitaloceanspaces.com`;
+    const accountId = this.configService.getOrThrow<string>('CLOUDFLARE_ACCOUNT_ID');
+    const apiToken = this.configService.getOrThrow<string>('CLOUDFLARE_API_TOKEN');
+    const endpoint = this.configService
+      .getOrThrow<string>('CLOUDFLARE_S3_API_URL')
+      .replace(/\/+$/, '');
 
-    const accessKeyId = this.configService.getOrThrow<string>('DO_SPACES_KEY');
-    const secretAccessKey = this.configService.getOrThrow<string>('DO_SPACES_SECRET');
+    this.bucket = this.configService.getOrThrow<string>('CLOUDFLARE_R2_BUCKET');
 
-    this.bucket = this.configService.get<string>('DO_SPACES_BUCKET') ?? 'smartdine';
-    this.publicBaseUrl =
-      this.configService.get<string>('DO_SPACES_PUBLIC_BASE_URL') ??
-      `https://${this.bucket}.${region}.digitaloceanspaces.com`;
+    this.publicBaseUrl = this.configService
+      .getOrThrow<string>('CLOUDFLARE_PUBLIC_BASE_URL')
+      .replace(/\/+$/, '');
 
     this.client = new S3Client({
-      region,
+      region: 'auto',
       endpoint,
       credentials: {
-        accessKeyId,
-        secretAccessKey,
+        accessKeyId: accountId,
+        secretAccessKey: apiToken,
       },
     });
   }
@@ -68,7 +67,6 @@ export class SpacesStorageService {
           Body: file.buffer,
           ContentType: file.mimetype,
           ContentLength: file.size,
-          ACL: 'public-read',
           CacheControl: 'public, max-age=31536000, immutable',
         }),
       );
@@ -80,7 +78,7 @@ export class SpacesStorageService {
 
     return {
       key,
-      url: `${this.publicBaseUrl}/${key}`,
+      url: `${this.publicBaseUrl.replace(/\/+$/, '')}/${key}`,
     };
   }
 

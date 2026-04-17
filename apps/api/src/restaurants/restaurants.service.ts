@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import { DATABASE } from '../database/lib/definitions';
 import { and, asc, desc, eq, ilike, inArray, or, schema, type Database } from '@smartdine/db';
-import { SpacesStorageService } from '../common/storage/spaces-storage.service';
+import { R2StorageService } from '../common/storage/spaces-storage.service';
 import { ListRestaurantsDto } from './dto/list-restaurants.dto';
 import type { CreateMenuItemDto } from './dto/create-menu-item.dto';
 import type { ReplaceFloorPlanDto } from './dto/replace-floor-plan.dto';
@@ -18,7 +18,7 @@ import type { UpdateRestaurantDto } from './dto/update-restaurant.dto';
 export class RestaurantsService {
   constructor(
     @Inject(DATABASE) private readonly db: Database,
-    private readonly spacesStorage: SpacesStorageService,
+    private readonly r2Storage: R2StorageService,
   ) {}
 
   async findAll({ offset, limit, search }: ListRestaurantsDto) {
@@ -247,7 +247,7 @@ export class RestaurantsService {
 
   async uploadRestaurantImage(restaurantId: string, image: Express.Multer.File) {
     const restaurant = await this.getRestaurantOrThrow(restaurantId);
-    const uploaded = await this.spacesStorage.uploadRestaurantImage(restaurantId, image);
+    const uploaded = await this.r2Storage.uploadRestaurantImage(restaurantId, image);
 
     try {
       if (restaurant.images.includes(uploaded.url)) {
@@ -306,7 +306,7 @@ export class RestaurantsService {
 
   async uploadMenuItemImage(restaurantId: string, menuItemId: string, image: Express.Multer.File) {
     await this.assertMenuItemExists(restaurantId, menuItemId);
-    const uploaded = await this.spacesStorage.uploadMenuItemImage(restaurantId, menuItemId, image);
+    const uploaded = await this.r2Storage.uploadMenuItemImage(restaurantId, menuItemId, image);
 
     try {
       const [updated] = await this.db
@@ -413,7 +413,7 @@ export class RestaurantsService {
 
   private async tryDeleteUploadedObject(key: string) {
     try {
-      await this.spacesStorage.deleteObjectByKey(key);
+      await this.r2Storage.deleteObjectByKey(key);
     } catch {
       return;
     }

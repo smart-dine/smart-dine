@@ -61,8 +61,10 @@ Permission checks are handled by the RBAC guard and decorators.
 
 - `PATCH /api/v1/restaurants/:restaurantId`
 - `POST /api/v1/restaurants/:restaurantId/images`
+- `POST /api/v1/restaurants/:restaurantId/images/upload`
 - `DELETE /api/v1/restaurants/:restaurantId/images`
 - `POST /api/v1/restaurants/:restaurantId/menu-items`
+- `POST /api/v1/restaurants/:restaurantId/menu-items/:menuItemId/image/upload`
 - `PATCH /api/v1/restaurants/:restaurantId/menu-items/:menuItemId`
 - `DELETE /api/v1/restaurants/:restaurantId/menu-items/:menuItemId`
 
@@ -98,6 +100,19 @@ A table is considered unavailable if an existing `pending` or `confirmed` reserv
 
 ## Image Management
 
-The API stores image URLs for restaurants and menu items.
+The API accepts multipart image uploads for restaurant and menu item assets, uploads them to Cloudflare R2, and persists the resulting public URL in the database.
 
-This is designed for external object storage workflows such as Vercel storage, where upload happens outside this API and the resulting URL is registered via management endpoints.
+Required Cloudflare environment variables:
+
+- `CLOUDFLARE_ACCOUNT_ID`
+- `CLOUDFLARE_API_TOKEN`
+- `CLOUDFLARE_R2_BUCKET`
+- `CLOUDFLARE_PUBLIC_BASE_URL`
+- `CLOUDFLARE_S3_API_URL`
+
+Supported upload endpoints:
+
+- `POST /api/v1/restaurants/:restaurantId/images/upload`
+- `POST /api/v1/restaurants/:restaurantId/menu-items/:menuItemId/image/upload`
+
+Accepted image MIME types are jpeg, png, and webp with a 5 MB maximum file size.
