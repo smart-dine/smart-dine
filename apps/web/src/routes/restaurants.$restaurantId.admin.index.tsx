@@ -2,7 +2,13 @@ import { ordersQueryOptions } from '#/lib/api/orders';
 import { reservationsQueryOptions } from '#/lib/api/reservations';
 import { restaurantsQueryOptions } from '#/lib/api/restaurants';
 import { staffQueryOptions } from '#/lib/api/staff';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@smartdine/ui/components/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@smartdine/ui/components/card';
 import { useQuery } from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
 import { BookOpenCheck, CalendarClock, ClipboardList, Users } from 'lucide-react';
@@ -23,7 +29,9 @@ function RestaurantAdminOverviewPage() {
     (reservation) => reservation.status === 'pending',
   ).length;
 
-  const activeOrders = (ordersQuery.data ?? []).filter((order) => order.status !== 'completed').length;
+  const activeOrders = (ordersQuery.data ?? []).filter(
+    (order) => order.status !== 'completed',
+  ).length;
 
   return (
     <section className='grid gap-4 md:grid-cols-2 xl:grid-cols-4'>
@@ -80,8 +88,8 @@ function RestaurantAdminOverviewPage() {
         </CardHeader>
         <CardContent>
           <p className='text-muted-foreground text-sm'>
-            Use the tabs above to manage menu and floor plan updates, keep staffing current, and process
-            reservations and orders.
+            Use the tabs above to manage menu and floor plan updates, keep staffing current, and
+            process reservations and orders.
           </p>
         </CardContent>
       </Card>

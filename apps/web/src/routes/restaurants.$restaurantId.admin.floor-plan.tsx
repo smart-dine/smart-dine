@@ -1,8 +1,18 @@
-import { replaceFloorPlan, restaurantsQueryOptions, toReplaceFloorPlanInput } from '#/lib/api/restaurants';
+import {
+  replaceFloorPlan,
+  restaurantsQueryOptions,
+  toReplaceFloorPlanInput,
+} from '#/lib/api/restaurants';
 import type { FloorPlanTableInput, TableShape } from '#/lib/api/contracts';
 import { getApiErrorMessage } from '#/lib/api/http';
 import { Button } from '@smartdine/ui/components/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@smartdine/ui/components/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@smartdine/ui/components/card';
 import { Input } from '@smartdine/ui/components/input';
 import { Label } from '@smartdine/ui/components/label';
 import {
@@ -153,7 +163,9 @@ function RestaurantFloorPlanPage() {
                       type='number'
                       min='1'
                       value={table.capacity}
-                      onChange={(event) => updateTable(index, 'capacity', Number(event.target.value))}
+                      onChange={(event) =>
+                        updateTable(index, 'capacity', Number(event.target.value))
+                      }
                     />
                   </TableCell>
 
@@ -205,7 +217,9 @@ function RestaurantFloorPlanPage() {
                       variant='destructive'
                       size='sm'
                       onClick={() =>
-                        setTables((current) => current.filter((_, tableIndex) => tableIndex !== index))
+                        setTables((current) =>
+                          current.filter((_, tableIndex) => tableIndex !== index),
+                        )
                       }
                     >
                       <Trash2 className='mr-1 size-4' />

@@ -51,20 +51,28 @@ export type PublicRestaurantListItem = Jsonify<
 
 export type PublicRestaurantDetail = Jsonify<
   RestaurantRow & {
-    menuItems: Array<Pick<MenuItemRow, 'id' | 'name' | 'description' | 'price' | 'image' | 'isAvailable'>>;
+    menuItems: Array<
+      Pick<MenuItemRow, 'id' | 'name' | 'description' | 'price' | 'image' | 'isAvailable'>
+    >;
   }
 >;
 
 export type RestaurantMenuItem = Jsonify<MenuItemRow>;
 
 export type RestaurantFloorTable = Jsonify<
-  Pick<RestaurantTableRow, 'id' | 'tableNumber' | 'capacity' | 'xCoordinate' | 'yCoordinate' | 'shape'>
+  Pick<
+    RestaurantTableRow,
+    'id' | 'tableNumber' | 'capacity' | 'xCoordinate' | 'yCoordinate' | 'shape'
+  >
 >;
 
 export type RestaurantFloorMap = Jsonify<
   Pick<RestaurantRow, 'id' | 'name' | 'openingHours'> & {
     tables: Array<
-      Pick<RestaurantTableRow, 'id' | 'tableNumber' | 'capacity' | 'xCoordinate' | 'yCoordinate' | 'shape'>
+      Pick<
+        RestaurantTableRow,
+        'id' | 'tableNumber' | 'capacity' | 'xCoordinate' | 'yCoordinate' | 'shape'
+      >
     >;
   }
 >;

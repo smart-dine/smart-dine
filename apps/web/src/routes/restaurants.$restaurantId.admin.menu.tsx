@@ -10,7 +10,13 @@ import { getApiErrorMessage } from '#/lib/api/http';
 import { formatMoney } from '#/lib/formatters';
 import { Badge } from '@smartdine/ui/components/badge';
 import { Button } from '@smartdine/ui/components/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@smartdine/ui/components/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@smartdine/ui/components/card';
 import {
   Dialog,
   DialogContent,
@@ -229,7 +235,9 @@ function RestaurantMenuPage() {
       <Card>
         <CardHeader>
           <CardTitle>Menu Catalog</CardTitle>
-          <CardDescription>Update pricing, availability, imagery, and item definitions.</CardDescription>
+          <CardDescription>
+            Update pricing, availability, imagery, and item definitions.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           {menuQuery.isPending ? (
@@ -250,7 +258,9 @@ function RestaurantMenuPage() {
                     <TableCell>
                       <div className='space-y-1'>
                         <p className='font-medium'>{item.name}</p>
-                        <p className='text-muted-foreground text-xs'>{item.description || 'No description'}</p>
+                        <p className='text-muted-foreground text-xs'>
+                          {item.description || 'No description'}
+                        </p>
                       </div>
                     </TableCell>
                     <TableCell>{formatMoney(item.price)}</TableCell>
@@ -290,7 +300,9 @@ function RestaurantMenuPage() {
                           <DialogContent className='max-w-lg'>
                             <DialogHeader>
                               <DialogTitle>Edit {item.name}</DialogTitle>
-                              <DialogDescription>Update menu item details and pricing.</DialogDescription>
+                              <DialogDescription>
+                                Update menu item details and pricing.
+                              </DialogDescription>
                             </DialogHeader>
 
                             <form

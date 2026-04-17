@@ -1,7 +1,13 @@
 import { adminQueryOptions } from '#/lib/api/admin';
 import { formatDateTime } from '#/lib/formatters';
 import { Badge } from '@smartdine/ui/components/badge';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@smartdine/ui/components/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@smartdine/ui/components/card';
 import {
   Table,
   TableBody,

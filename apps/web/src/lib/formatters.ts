@@ -8,6 +8,8 @@ const dateTimeFormatter = new Intl.DateTimeFormat('en-US', {
   timeStyle: 'short',
 });
 
-export const formatMoney = (valueInMinorUnits: number) => currencyFormatter.format(valueInMinorUnits / 100);
+export const formatMoney = (valueInMinorUnits: number) =>
+  currencyFormatter.format(valueInMinorUnits / 100);
 
-export const formatDateTime = (isoDateString: string) => dateTimeFormatter.format(new Date(isoDateString));
+export const formatDateTime = (isoDateString: string) =>
+  dateTimeFormatter.format(new Date(isoDateString));

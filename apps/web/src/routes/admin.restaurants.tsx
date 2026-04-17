@@ -8,7 +8,13 @@ import type { CreateAdminRestaurantInput, OpeningHours } from '#/lib/api/contrac
 import { getApiErrorMessage } from '#/lib/api/http';
 import { Badge } from '@smartdine/ui/components/badge';
 import { Button } from '@smartdine/ui/components/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@smartdine/ui/components/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@smartdine/ui/components/card';
 import {
   Dialog,
   DialogContent,
@@ -69,7 +75,9 @@ function AdminRestaurantsPage() {
   const queryClient = useQueryClient();
   const [isCreateDialogOpen, setCreateDialogOpen] = useState(false);
   const [createForm, setCreateForm] = useState<CreateAdminRestaurantInput>(buildDefaultCreateState);
-  const [ownerDraftByRestaurantId, setOwnerDraftByRestaurantId] = useState<Partial<Record<string, string>>>({});
+  const [ownerDraftByRestaurantId, setOwnerDraftByRestaurantId] = useState<
+    Partial<Record<string, string>>
+  >({});
   const [formError, setFormError] = useState<string | null>(null);
 
   const restaurantsQuery = useQuery(adminQueryOptions.restaurants());
@@ -137,7 +145,9 @@ function AdminRestaurantsPage() {
             <Building2 className='size-4' />
             Restaurants
           </CardTitle>
-          <CardDescription>Create venues, assign owners, and remove deprecated records.</CardDescription>
+          <CardDescription>
+            Create venues, assign owners, and remove deprecated records.
+          </CardDescription>
         </div>
 
         <Dialog
@@ -343,7 +353,9 @@ function AdminRestaurantsPage() {
                       </div>
                     </TableCell>
 
-                    <TableCell className='text-muted-foreground text-sm'>{restaurant.address}</TableCell>
+                    <TableCell className='text-muted-foreground text-sm'>
+                      {restaurant.address}
+                    </TableCell>
 
                     <TableCell className='text-right'>
                       <Button

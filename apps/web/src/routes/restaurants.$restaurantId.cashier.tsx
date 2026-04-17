@@ -6,8 +6,13 @@ import { getApiErrorMessage } from '#/lib/api/http';
 import { formatMoney } from '#/lib/formatters';
 import { Badge } from '@smartdine/ui/components/badge';
 import { Button } from '@smartdine/ui/components/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@smartdine/ui/components/card';
-import { Input } from '@smartdine/ui/components/input';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@smartdine/ui/components/card';
 import { Label } from '@smartdine/ui/components/label';
 import {
   Select,
@@ -149,7 +154,7 @@ function CashierPage() {
               {menuItems.map((menuItem) => (
                 <div
                   key={menuItem.id}
-                  className='rounded-xl border bg-background p-4'
+                  className='bg-background rounded-xl border p-4'
                 >
                   <div className='flex items-start justify-between gap-3'>
                     <div>
@@ -346,7 +351,7 @@ function CashierPage() {
             </div>
           ))}
 
-          <div className='flex items-center justify-between rounded-md border bg-background px-3 py-2 text-sm'>
+          <div className='bg-background flex items-center justify-between rounded-md border px-3 py-2 text-sm'>
             <span className='text-muted-foreground'>Order total</span>
             <span className='font-semibold'>{formatMoney(orderTotal)}</span>
           </div>
@@ -356,7 +361,10 @@ function CashierPage() {
           <Button
             className='w-full'
             disabled={
-              !selectedTableId || lineItems.length === 0 || createOrderMutation.isPending || menuQuery.isPending
+              !selectedTableId ||
+              lineItems.length === 0 ||
+              createOrderMutation.isPending ||
+              menuQuery.isPending
             }
             onClick={() =>
               createOrderMutation.mutate({

@@ -4,7 +4,13 @@ import { getApiErrorMessage } from '#/lib/api/http';
 import { formatDateTime, formatMoney } from '#/lib/formatters';
 import { Badge } from '@smartdine/ui/components/badge';
 import { Button } from '@smartdine/ui/components/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@smartdine/ui/components/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@smartdine/ui/components/card';
 import {
   Select,
   SelectContent,
@@ -78,7 +84,9 @@ function RestaurantOrdersPage() {
               <ClipboardList className='size-4' />
               Order Monitor
             </CardTitle>
-            <CardDescription>Track and move order states across the kitchen lifecycle.</CardDescription>
+            <CardDescription>
+              Track and move order states across the kitchen lifecycle.
+            </CardDescription>
           </div>
 
           <Select
@@ -107,7 +115,7 @@ function RestaurantOrdersPage() {
             {orderStatuses.map((status) => (
               <div
                 key={status}
-                className='rounded-lg border bg-background px-3 py-2'
+                className='bg-background rounded-lg border px-3 py-2'
               >
                 <p className='text-muted-foreground text-xs uppercase'>{status}</p>
                 <p className='text-lg font-semibold'>{groupedTotals[status]}</p>
@@ -154,7 +162,10 @@ function RestaurantOrdersPage() {
                       >
                         <span className='font-medium'>x{item.quantity}</span> {item.menuItem.name}
                         {item.specialInstructions && (
-                          <span className='text-muted-foreground'> ({item.specialInstructions})</span>
+                          <span className='text-muted-foreground'>
+                            {' '}
+                            ({item.specialInstructions})
+                          </span>
                         )}
                       </li>
                     ))}

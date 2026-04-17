@@ -3,7 +3,13 @@ import type { StaffRole } from '#/lib/api/contracts';
 import { getApiErrorMessage } from '#/lib/api/http';
 import { Badge } from '@smartdine/ui/components/badge';
 import { Button } from '@smartdine/ui/components/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@smartdine/ui/components/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@smartdine/ui/components/card';
 import { Input } from '@smartdine/ui/components/input';
 import { Label } from '@smartdine/ui/components/label';
 import {
@@ -175,7 +181,8 @@ function RestaurantStaffPage() {
 
               <TableBody>
                 {staff.map((staffRole) => {
-                  const selectedRole = roleDraftByStaffId[staffRole.id] ?? (staffRole.role as StaffRole);
+                  const selectedRole =
+                    roleDraftByStaffId[staffRole.id] ?? (staffRole.role as StaffRole);
 
                   return (
                     <TableRow key={staffRole.id}>

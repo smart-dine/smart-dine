@@ -1,6 +1,6 @@
 import { useAuthSession } from '#/lib/auth/access';
 import { Button } from '@smartdine/ui/components/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@smartdine/ui/components/card';
+import { Card, CardDescription, CardHeader, CardTitle } from '@smartdine/ui/components/card';
 import { Link, Navigate, Outlet, createFileRoute } from '@tanstack/react-router';
 import { ShieldCheck } from 'lucide-react';
 
@@ -44,7 +44,7 @@ function AdminLayout() {
 
   return (
     <main className='container mx-auto flex flex-col gap-6 px-4 py-8'>
-      <section className='flex flex-col gap-4 rounded-2xl border bg-card p-6 shadow-sm lg:flex-row lg:items-end lg:justify-between'>
+      <section className='bg-card flex flex-col gap-4 rounded-2xl border p-6 shadow-sm lg:flex-row lg:items-end lg:justify-between'>
         <div className='space-y-2'>
           <div className='text-primary inline-flex items-center gap-2 text-sm font-medium'>
             <ShieldCheck className='size-4' />

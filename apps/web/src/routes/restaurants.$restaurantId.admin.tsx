@@ -1,7 +1,7 @@
 import { useRestaurantRouteAccess } from '#/lib/auth/access';
 import { restaurantsQueryOptions } from '#/lib/api/restaurants';
 import { Button } from '@smartdine/ui/components/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@smartdine/ui/components/card';
+import { Card, CardDescription, CardHeader, CardTitle } from '@smartdine/ui/components/card';
 import { useQuery } from '@tanstack/react-query';
 import { Link, Navigate, Outlet, createFileRoute } from '@tanstack/react-router';
 import { LayoutDashboard, SquareMenu } from 'lucide-react';
@@ -49,8 +49,8 @@ function RestaurantAdminLayout() {
 
   return (
     <main className='container mx-auto flex flex-col gap-6 px-4 py-8'>
-      <section className='relative overflow-hidden rounded-2xl border bg-card p-6 shadow-sm'>
-        <div className='absolute -top-20 -right-20 size-56 rounded-full bg-primary/10 blur-3xl' />
+      <section className='bg-card relative overflow-hidden rounded-2xl border p-6 shadow-sm'>
+        <div className='bg-primary/10 absolute -top-20 -right-20 size-56 rounded-full blur-3xl' />
         <div className='relative z-10 space-y-3'>
           <p className='text-primary inline-flex items-center gap-2 text-sm font-medium'>
             <LayoutDashboard className='size-4' />

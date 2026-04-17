@@ -2,7 +2,13 @@ import { staffQueryOptions } from '#/lib/api/staff';
 import { authClient } from '#/lib/auth-client';
 import { Badge } from '@smartdine/ui/components/badge';
 import { Button } from '@smartdine/ui/components/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@smartdine/ui/components/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@smartdine/ui/components/card';
 import { useQuery } from '@tanstack/react-query';
 import { Link, createFileRoute } from '@tanstack/react-router';
 import { LayoutDashboard, Store } from 'lucide-react';
@@ -21,13 +27,16 @@ function App() {
 
   return (
     <main className='container mx-auto flex flex-col gap-6 px-4 py-8'>
-      <section className='relative overflow-hidden rounded-2xl border bg-card p-6 shadow-sm'>
-        <div className='absolute -right-24 -bottom-20 size-64 rounded-full bg-primary/10 blur-3xl' />
+      <section className='bg-card relative overflow-hidden rounded-2xl border p-6 shadow-sm'>
+        <div className='bg-primary/10 absolute -right-24 -bottom-20 size-64 rounded-full blur-3xl' />
         <div className='relative z-10 space-y-3'>
           <Badge variant='secondary'>Client SPA</Badge>
-          <h1 className='text-3xl font-semibold tracking-tight md:text-4xl'>Smart Dine Frontend Hub</h1>
+          <h1 className='text-3xl font-semibold tracking-tight md:text-4xl'>
+            Smart Dine Frontend Hub
+          </h1>
           <p className='text-muted-foreground max-w-2xl'>
-            Access site administration, restaurant operations, and cashier order construction workflows.
+            Access site administration, restaurant operations, and cashier order construction
+            workflows.
           </p>
 
           <div className='flex flex-wrap gap-2'>
@@ -105,7 +114,8 @@ function App() {
             <CardHeader>
               <CardTitle>No Restaurant Assignments Yet</CardTitle>
               <CardDescription>
-                Ask an owner or admin to assign you to a restaurant to access admin and cashier tools.
+                Ask an owner or admin to assign you to a restaurant to access admin and cashier
+                tools.
               </CardDescription>
             </CardHeader>
           </Card>

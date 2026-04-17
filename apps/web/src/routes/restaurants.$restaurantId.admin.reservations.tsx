@@ -8,7 +8,13 @@ import { getApiErrorMessage } from '#/lib/api/http';
 import { formatDateTime } from '#/lib/formatters';
 import { Badge } from '@smartdine/ui/components/badge';
 import { Button } from '@smartdine/ui/components/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@smartdine/ui/components/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@smartdine/ui/components/card';
 import {
   Select,
   SelectContent,
@@ -39,7 +45,9 @@ function RestaurantReservationsPage() {
   const queryClient = useQueryClient();
   const { restaurantId } = Route.useParams();
 
-  const [statusDraftByReservationId, setStatusDraftByReservationId] = useState<Record<string, ReservationStatus>>({});
+  const [statusDraftByReservationId, setStatusDraftByReservationId] = useState<
+    Record<string, ReservationStatus>
+  >({});
   const [pageError, setPageError] = useState<string | null>(null);
 
   const reservationsQuery = useQuery(reservationsQueryOptions.restaurantReservations(restaurantId));
@@ -103,14 +111,17 @@ function RestaurantReservationsPage() {
             <TableBody>
               {reservations.map((reservation) => {
                 const selectedStatus =
-                  statusDraftByReservationId[reservation.id] ?? (reservation.status as ReservationStatus);
+                  statusDraftByReservationId[reservation.id] ??
+                  (reservation.status as ReservationStatus);
 
                 return (
                   <TableRow key={reservation.id}>
                     <TableCell>
                       <div className='space-y-1'>
                         <p className='font-medium'>{reservation.customer.name}</p>
-                        <p className='text-muted-foreground text-xs'>{reservation.customer.email}</p>
+                        <p className='text-muted-foreground text-xs'>
+                          {reservation.customer.email}
+                        </p>
                       </div>
                     </TableCell>
                     <TableCell>{reservation.table.tableNumber}</TableCell>

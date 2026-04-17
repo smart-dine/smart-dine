@@ -1,7 +1,13 @@
 import { adminQueryOptions } from '#/lib/api/admin';
 import { Badge } from '@smartdine/ui/components/badge';
 import { Button } from '@smartdine/ui/components/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@smartdine/ui/components/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@smartdine/ui/components/card';
 import { Input } from '@smartdine/ui/components/input';
 import {
   Table,
@@ -46,7 +52,9 @@ function AdminUsersPage() {
           <UserRound className='size-4' />
           User Directory
         </CardTitle>
-        <CardDescription>Search and browse user accounts for owner assignment operations.</CardDescription>
+        <CardDescription>
+          Search and browse user accounts for owner assignment operations.
+        </CardDescription>
       </CardHeader>
 
       <CardContent className='space-y-4'>
@@ -89,7 +97,9 @@ function AdminUsersPage() {
                   <TableCell className='font-medium'>{user.name || 'Unknown user'}</TableCell>
                   <TableCell>{user.email}</TableCell>
                   <TableCell>
-                    <Badge variant={user.role === 'admin' ? 'default' : 'secondary'}>{user.role}</Badge>
+                    <Badge variant={user.role === 'admin' ? 'default' : 'secondary'}>
+                      {user.role}
+                    </Badge>
                   </TableCell>
                   <TableCell className='text-muted-foreground text-xs'>{user.id}</TableCell>
                 </TableRow>
