@@ -33,12 +33,11 @@ async function bootstrap() {
       'Role-based API for restaurants, reservations, orders, staff operations, and system administration.',
     )
     .setVersion('1.0.0')
-    .addServer('/api')
     .addCookieAuth('better-auth.session_token', { type: 'apiKey', in: 'cookie' }, 'session-cookie')
     .build();
 
   const swaggerDocument = SwaggerModule.createDocument(app, swaggerConfig);
-  SwaggerModule.setup('api/docs', app, swaggerDocument, {
+  SwaggerModule.setup('/docs', app, swaggerDocument, {
     swaggerOptions: {
       persistAuthorization: true,
     },
