@@ -1,0 +1,401 @@
+import { AllowAnonymous } from '@thallesp/nestjs-better-auth';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpStatus,
+  Param,
+  ParseFilePipeBuilder,
+  ParseUUIDPipe,
+  Patch,
+  Post,
+  Query,
+  UploadedFile,
+  UseInterceptors,
+} from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import {
+  ApiBadRequestResponse,
+  ApiBody,
+  ApiConsumes,
+  ApiConflictResponse,
+  ApiCookieAuth,
+  ApiCreatedResponse,
+  ApiForbiddenResponse,
+  ApiNotFoundResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiParam,
+  ApiTags,
+  ApiUnauthorizedResponse,
+  ApiUnprocessableEntityResponse,
+} from '@nestjs/swagger';
+import { RequireRestaurantPermissions } from '../rbac/decorators/require-permissions.decorator';
+import {
+  ALLOWED_IMAGE_FILE_TYPE_REGEX,
+  MAX_IMAGE_UPLOAD_BYTES,
+} from '../common/constants/upload.constants';
+import { CreateMenuItemDto } from './dto/create-menu-item.dto';
+import { RestaurantsService } from './restaurants.service';
+import { ListRestaurantsDto } from './dto/list-restaurants.dto';
+import { ReplaceFloorPlanDto } from './dto/replace-floor-plan.dto';
+import { UpdateMenuItemDto } from './dto/update-menu-item.dto';
+import { UpdateRestaurantDto } from './dto/update-restaurant.dto';
+import { UpdateRestaurantImageDto } from './dto/update-restaurant-image.dto';
+
+@Controller({
+  path: 'restaurants',
+  version: '1',
+})
+@ApiTags('Restaurants')
+export class RestaurantsController {
+  constructor(private readonly restaurantsService: RestaurantsService) {}
+
+  @Get()
+  @AllowAnonymous()
+  @ApiOperation({ summary: 'List public restaurants' })
+  @ApiOkResponse({
+    description: 'Public restaurant list.',
+    schema: {
+      type: 'array',
+      items: { type: 'object' },
+    },
+  })
+  @ApiBadRequestResponse({ description: 'Invalid query parameter values.' })
+  findAll(@Query() query: ListRestaurantsDto) {
+    return this.restaurantsService.findAll(query);
+  }
+
+  @Get(':restaurantId')
+  @AllowAnonymous()
+  @ApiOperation({ summary: 'Get public restaurant details by id' })
+  @ApiParam({ name: 'restaurantId', format: 'uuid' })
+  @ApiOkResponse({
+    description: 'Restaurant details including menu items.',
+    schema: {
+      type: 'object',
+    },
+  })
+  @ApiNotFoundResponse({ description: 'Restaurant not found.' })
+  findOne(@Param('restaurantId', ParseUUIDPipe) restaurantId: string) {
+    return this.restaurantsService.findOne(restaurantId);
+  }
+
+  @Get(':restaurantId/menu-items')
+  @AllowAnonymous()
+  @ApiOperation({ summary: 'List menu items for a restaurant' })
+  @ApiParam({ name: 'restaurantId', format: 'uuid' })
+  @ApiOkResponse({
+    description: 'Menu items for this restaurant.',
+    schema: {
+      type: 'array',
+      items: { type: 'object' },
+    },
+  })
+  @ApiNotFoundResponse({ description: 'Restaurant not found.' })
+  findMenuItems(@Param('restaurantId', ParseUUIDPipe) restaurantId: string) {
+    return this.restaurantsService.findMenuItems(restaurantId);
+  }
+
+  @Get(':restaurantId/floor-map')
+  @AllowAnonymous()
+  @ApiOperation({ summary: 'Get restaurant floor map and table layout' })
+  @ApiParam({ name: 'restaurantId', format: 'uuid' })
+  @ApiOkResponse({
+    description: 'Floor map with table coordinates and capacities.',
+    schema: {
+      type: 'object',
+    },
+  })
+  @ApiNotFoundResponse({ description: 'Restaurant not found.' })
+  findFloorMap(@Param('restaurantId', ParseUUIDPipe) restaurantId: string) {
+    return this.restaurantsService.findFloorMap(restaurantId);
+  }
+
+  @Patch(':restaurantId')
+  @RequireRestaurantPermissions(['restaurant:update'])
+  @ApiCookieAuth('session-cookie')
+  @ApiOperation({ summary: 'Update mutable restaurant fields' })
+  @ApiParam({ name: 'restaurantId', format: 'uuid' })
+  @ApiOkResponse({
+    description: 'Updated restaurant record.',
+    schema: {
+      type: 'object',
+    },
+  })
+  @ApiBadRequestResponse({
+    description: 'No mutable fields were provided or payload validation failed.',
+  })
+  @ApiUnauthorizedResponse({ description: 'Authentication is required.' })
+  @ApiForbiddenResponse({ description: 'Missing restaurant:update permission.' })
+  @ApiNotFoundResponse({ description: 'Restaurant not found.' })
+  updateRestaurant(
+    @Param('restaurantId', ParseUUIDPipe) restaurantId: string,
+    @Body() body: UpdateRestaurantDto,
+  ) {
+    return this.restaurantsService.updateRestaurant(restaurantId, body);
+  }
+
+  @Patch(':restaurantId/floor-plan')
+  @RequireRestaurantPermissions(['restaurant:update'])
+  @ApiCookieAuth('session-cookie')
+  @ApiOperation({ summary: 'Replace complete restaurant floor plan table set' })
+  @ApiParam({ name: 'restaurantId', format: 'uuid' })
+  @ApiOkResponse({
+    description: 'Persisted floor plan table collection.',
+    schema: {
+      type: 'array',
+      items: { type: 'object' },
+    },
+  })
+  @ApiBadRequestResponse({
+    description: 'Duplicate table numbers or invalid floor-plan payload.',
+  })
+  @ApiUnauthorizedResponse({ description: 'Authentication is required.' })
+  @ApiForbiddenResponse({ description: 'Missing restaurant:update permission.' })
+  @ApiNotFoundResponse({
+    description: 'Restaurant or one of the provided table ids was not found.',
+  })
+  @ApiConflictResponse({
+    description: 'Cannot remove tables still referenced by reservations or orders.',
+  })
+  replaceFloorPlan(
+    @Param('restaurantId', ParseUUIDPipe) restaurantId: string,
+    @Body() body: ReplaceFloorPlanDto,
+  ) {
+    return this.restaurantsService.replaceFloorPlan(restaurantId, body);
+  }
+
+  @Post(':restaurantId/images')
+  @RequireRestaurantPermissions(['restaurant:update'])
+  @ApiCookieAuth('session-cookie')
+  @ApiOperation({ summary: 'Attach an existing image URL to restaurant gallery' })
+  @ApiParam({ name: 'restaurantId', format: 'uuid' })
+  @ApiCreatedResponse({
+    description: 'Restaurant record after image URL update.',
+    schema: {
+      type: 'object',
+    },
+  })
+  @ApiBadRequestResponse({ description: 'Invalid image URL payload.' })
+  @ApiUnauthorizedResponse({ description: 'Authentication is required.' })
+  @ApiForbiddenResponse({ description: 'Missing restaurant:update permission.' })
+  @ApiNotFoundResponse({ description: 'Restaurant not found.' })
+  addRestaurantImage(
+    @Param('restaurantId', ParseUUIDPipe) restaurantId: string,
+    @Body() body: UpdateRestaurantImageDto,
+  ) {
+    return this.restaurantsService.addRestaurantImage(restaurantId, body.url);
+  }
+
+  @Post(':restaurantId/images/upload')
+  @RequireRestaurantPermissions(['restaurant:update'])
+  @ApiCookieAuth('session-cookie')
+  @ApiOperation({ summary: 'Upload and attach a restaurant image file' })
+  @ApiParam({ name: 'restaurantId', format: 'uuid' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['image'],
+      properties: {
+        image: {
+          type: 'string',
+          format: 'binary',
+          description: 'Image file (jpeg/png/webp, max 5MB).',
+        },
+      },
+    },
+  })
+  @ApiCreatedResponse({
+    description: 'Restaurant record after image upload.',
+    schema: {
+      type: 'object',
+    },
+  })
+  @ApiUnprocessableEntityResponse({
+    description: 'Image file is missing, too large, or has unsupported type.',
+  })
+  @ApiUnauthorizedResponse({ description: 'Authentication is required.' })
+  @ApiForbiddenResponse({ description: 'Missing restaurant:update permission.' })
+  @ApiNotFoundResponse({ description: 'Restaurant not found.' })
+  @UseInterceptors(
+    FileInterceptor('image', {
+      limits: {
+        fileSize: MAX_IMAGE_UPLOAD_BYTES,
+      },
+    }),
+  )
+  uploadRestaurantImage(
+    @Param('restaurantId', ParseUUIDPipe) restaurantId: string,
+    @UploadedFile(
+      new ParseFilePipeBuilder()
+        .addFileTypeValidator({
+          fileType: ALLOWED_IMAGE_FILE_TYPE_REGEX,
+        })
+        .addMaxSizeValidator({
+          maxSize: MAX_IMAGE_UPLOAD_BYTES,
+        })
+        .build({
+          fileIsRequired: true,
+          errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY,
+        }),
+    )
+    image: Express.Multer.File,
+  ) {
+    return this.restaurantsService.uploadRestaurantImage(restaurantId, image);
+  }
+
+  @Delete(':restaurantId/images')
+  @RequireRestaurantPermissions(['restaurant:update'])
+  @ApiCookieAuth('session-cookie')
+  @ApiOperation({ summary: 'Remove an image URL from restaurant gallery' })
+  @ApiParam({ name: 'restaurantId', format: 'uuid' })
+  @ApiOkResponse({
+    description: 'Restaurant record after image URL removal.',
+    schema: {
+      type: 'object',
+    },
+  })
+  @ApiBadRequestResponse({ description: 'Invalid image URL payload.' })
+  @ApiUnauthorizedResponse({ description: 'Authentication is required.' })
+  @ApiForbiddenResponse({ description: 'Missing restaurant:update permission.' })
+  @ApiNotFoundResponse({ description: 'Restaurant not found or image URL does not exist.' })
+  removeRestaurantImage(
+    @Param('restaurantId', ParseUUIDPipe) restaurantId: string,
+    @Body() body: UpdateRestaurantImageDto,
+  ) {
+    return this.restaurantsService.removeRestaurantImage(restaurantId, body.url);
+  }
+
+  @Post(':restaurantId/menu-items')
+  @RequireRestaurantPermissions(['menu:manage'])
+  @ApiCookieAuth('session-cookie')
+  @ApiOperation({ summary: 'Create a menu item for a restaurant' })
+  @ApiParam({ name: 'restaurantId', format: 'uuid' })
+  @ApiCreatedResponse({
+    description: 'Menu item created.',
+    schema: {
+      type: 'object',
+    },
+  })
+  @ApiBadRequestResponse({ description: 'Invalid menu item payload.' })
+  @ApiUnauthorizedResponse({ description: 'Authentication is required.' })
+  @ApiForbiddenResponse({ description: 'Missing menu:manage permission.' })
+  @ApiNotFoundResponse({ description: 'Restaurant not found.' })
+  createMenuItem(
+    @Param('restaurantId', ParseUUIDPipe) restaurantId: string,
+    @Body() body: CreateMenuItemDto,
+  ) {
+    return this.restaurantsService.createMenuItem(restaurantId, body);
+  }
+
+  @Post(':restaurantId/menu-items/:menuItemId/image/upload')
+  @RequireRestaurantPermissions(['menu:manage'])
+  @ApiCookieAuth('session-cookie')
+  @ApiOperation({ summary: 'Upload and set menu item image file' })
+  @ApiParam({ name: 'restaurantId', format: 'uuid' })
+  @ApiParam({ name: 'menuItemId', format: 'uuid' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['image'],
+      properties: {
+        image: {
+          type: 'string',
+          format: 'binary',
+          description: 'Image file (jpeg/png/webp, max 5MB).',
+        },
+      },
+    },
+  })
+  @ApiCreatedResponse({
+    description: 'Updated menu item with uploaded image URL.',
+    schema: {
+      type: 'object',
+    },
+  })
+  @ApiUnprocessableEntityResponse({
+    description: 'Image file is missing, too large, or has unsupported type.',
+  })
+  @ApiUnauthorizedResponse({ description: 'Authentication is required.' })
+  @ApiForbiddenResponse({ description: 'Missing menu:manage permission.' })
+  @ApiNotFoundResponse({ description: 'Restaurant or menu item not found.' })
+  @UseInterceptors(
+    FileInterceptor('image', {
+      limits: {
+        fileSize: MAX_IMAGE_UPLOAD_BYTES,
+      },
+    }),
+  )
+  uploadMenuItemImage(
+    @Param('restaurantId', ParseUUIDPipe) restaurantId: string,
+    @Param('menuItemId', ParseUUIDPipe) menuItemId: string,
+    @UploadedFile(
+      new ParseFilePipeBuilder()
+        .addFileTypeValidator({
+          fileType: ALLOWED_IMAGE_FILE_TYPE_REGEX,
+        })
+        .addMaxSizeValidator({
+          maxSize: MAX_IMAGE_UPLOAD_BYTES,
+        })
+        .build({
+          fileIsRequired: true,
+          errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY,
+        }),
+    )
+    image: Express.Multer.File,
+  ) {
+    return this.restaurantsService.uploadMenuItemImage(restaurantId, menuItemId, image);
+  }
+
+  @Patch(':restaurantId/menu-items/:menuItemId')
+  @RequireRestaurantPermissions(['menu:manage'])
+  @ApiCookieAuth('session-cookie')
+  @ApiOperation({ summary: 'Update a menu item' })
+  @ApiParam({ name: 'restaurantId', format: 'uuid' })
+  @ApiParam({ name: 'menuItemId', format: 'uuid' })
+  @ApiOkResponse({
+    description: 'Menu item updated.',
+    schema: {
+      type: 'object',
+    },
+  })
+  @ApiBadRequestResponse({
+    description: 'No mutable fields were provided or payload validation failed.',
+  })
+  @ApiUnauthorizedResponse({ description: 'Authentication is required.' })
+  @ApiForbiddenResponse({ description: 'Missing menu:manage permission.' })
+  @ApiNotFoundResponse({ description: 'Menu item not found for this restaurant.' })
+  updateMenuItem(
+    @Param('restaurantId', ParseUUIDPipe) restaurantId: string,
+    @Param('menuItemId', ParseUUIDPipe) menuItemId: string,
+    @Body() body: UpdateMenuItemDto,
+  ) {
+    return this.restaurantsService.updateMenuItem(restaurantId, menuItemId, body);
+  }
+
+  @Delete(':restaurantId/menu-items/:menuItemId')
+  @RequireRestaurantPermissions(['menu:manage'])
+  @ApiCookieAuth('session-cookie')
+  @ApiOperation({ summary: 'Delete a menu item from a restaurant' })
+  @ApiParam({ name: 'restaurantId', format: 'uuid' })
+  @ApiParam({ name: 'menuItemId', format: 'uuid' })
+  @ApiOkResponse({
+    description: 'Deleted menu item payload.',
+    schema: {
+      type: 'object',
+    },
+  })
+  @ApiUnauthorizedResponse({ description: 'Authentication is required.' })
+  @ApiForbiddenResponse({ description: 'Missing menu:manage permission.' })
+  @ApiNotFoundResponse({ description: 'Menu item not found for this restaurant.' })
+  deleteMenuItem(
+    @Param('restaurantId', ParseUUIDPipe) restaurantId: string,
+    @Param('menuItemId', ParseUUIDPipe) menuItemId: string,
+  ) {
+    return this.restaurantsService.deleteMenuItem(restaurantId, menuItemId);
+  }
+}
