@@ -25,7 +25,7 @@ function App() {
   return (
     <main className='container mx-auto flex flex-col gap-10 px-4 py-8 md:py-12'>
       <section className='bg-card relative overflow-hidden rounded-3xl border p-8 shadow-sm md:p-12'>
-        <div className='from-primary/15 absolute top-10 -left-28 size-56 rounded-full bg-gradient-to-br to-transparent blur-3xl' />
+        <div className='from-primary/15 absolute top-10 -left-28 size-56 rounded-full bg-linear-to-br to-transparent blur-3xl' />
         <div className='bg-primary/10 absolute -right-20 -bottom-24 size-72 rounded-full blur-3xl' />
 
         <div className='relative z-10 grid gap-6 lg:grid-cols-[1.2fr_0.8fr] lg:items-end'>

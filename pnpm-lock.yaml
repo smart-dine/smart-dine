@@ -177,6 +177,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@smartdine/db':
+        specifier: workspace:*
+        version: link:../../packages/db
       '@smartdine/ui':
         specifier: workspace:*
         version: link:../../packages/ui
