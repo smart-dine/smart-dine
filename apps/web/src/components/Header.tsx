@@ -22,6 +22,13 @@ export default function Header() {
           >
             Home
           </Link>
+
+          <Link
+            to='/admin'
+            className='text-muted-foreground hover:text-foreground [&.active]:text-foreground text-sm font-medium no-underline underline-offset-8 [&.active]:font-semibold [&.active]:underline'
+          >
+            Admin
+          </Link>
         </nav>
 
         <div className='ml-auto flex items-center gap-4'>
