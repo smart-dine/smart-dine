@@ -141,8 +141,8 @@ function CashierPage() {
               className='text-primary underline-offset-2 hover:underline'
             >
               Open order monitor
-            </Link>
-            {' '}or{' '}
+            </Link>{' '}
+            or{' '}
             <Link
               to='/restaurants/$restaurantId/kiosk'
               params={{ restaurantId }}

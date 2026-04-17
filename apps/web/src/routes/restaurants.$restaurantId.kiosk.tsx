@@ -220,7 +220,9 @@ function KioskPage() {
     },
     onError: (error) => {
       const message =
-        error instanceof Error ? error.message : getApiErrorMessage(error, 'Failed to complete order.');
+        error instanceof Error
+          ? error.message
+          : getApiErrorMessage(error, 'Failed to complete order.');
       setPageError(message);
     },
     onSettled: () => {
@@ -237,7 +239,8 @@ function KioskPage() {
   );
 
   const filteredOrders = useMemo(
-    () => (statusFilter === 'all' ? orders : orders.filter((order) => order.status === statusFilter)),
+    () =>
+      statusFilter === 'all' ? orders : orders.filter((order) => order.status === statusFilter),
     [orders, statusFilter],
   );
 
@@ -472,9 +475,7 @@ function KioskPage() {
             size='sm'
             variant='outline'
           >
-            <Link
-              to='/workspace'
-            >
+            <Link to='/workspace'>
               <SquareMenu className='mr-1 size-4' />
               Back to workspace
             </Link>

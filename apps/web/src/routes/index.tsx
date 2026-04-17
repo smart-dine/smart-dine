@@ -11,14 +11,7 @@ import {
 } from '@smartdine/ui/components/card';
 import { useQuery } from '@tanstack/react-query';
 import { Link, createFileRoute } from '@tanstack/react-router';
-import {
-  ArrowRight,
-  Building2,
-  ChefHat,
-  LayoutDashboard,
-  Monitor,
-  SquareMenu,
-} from 'lucide-react';
+import { ArrowRight, Building2, ChefHat, LayoutDashboard, Monitor, SquareMenu } from 'lucide-react';
 
 export const Route = createFileRoute('/')({ component: App });
 
@@ -32,7 +25,7 @@ function App() {
   return (
     <main className='container mx-auto flex flex-col gap-10 px-4 py-8 md:py-12'>
       <section className='bg-card relative overflow-hidden rounded-3xl border p-8 shadow-sm md:p-12'>
-        <div className='from-primary/15 absolute -left-28 top-10 size-56 rounded-full bg-gradient-to-br to-transparent blur-3xl' />
+        <div className='from-primary/15 absolute top-10 -left-28 size-56 rounded-full bg-gradient-to-br to-transparent blur-3xl' />
         <div className='bg-primary/10 absolute -right-20 -bottom-24 size-72 rounded-full blur-3xl' />
 
         <div className='relative z-10 grid gap-6 lg:grid-cols-[1.2fr_0.8fr] lg:items-end'>
@@ -105,7 +98,9 @@ function App() {
                 <Monitor className='text-primary size-5' />
                 <div>
                   <p className='text-sm font-medium'>Kitchen Kiosk</p>
-                  <p className='text-muted-foreground text-xs'>Realtime order stream + completion</p>
+                  <p className='text-muted-foreground text-xs'>
+                    Realtime order stream + completion
+                  </p>
                 </div>
               </CardContent>
             </Card>
@@ -155,7 +150,9 @@ function App() {
         <div className='flex items-end justify-between gap-3'>
           <div>
             <h2 className='text-2xl font-semibold tracking-tight'>Featured Restaurants</h2>
-            <p className='text-muted-foreground text-sm'>Public discovery preview from live data.</p>
+            <p className='text-muted-foreground text-sm'>
+              Public discovery preview from live data.
+            </p>
           </div>
         </div>
 
@@ -196,13 +193,19 @@ function App() {
       <section className='bg-card rounded-2xl border p-6 md:p-8'>
         <div className='flex flex-col gap-3 md:flex-row md:items-center md:justify-between'>
           <div>
-            <h3 className='text-xl font-semibold tracking-tight'>Ready to run your next service?</h3>
+            <h3 className='text-xl font-semibold tracking-tight'>
+              Ready to run your next service?
+            </h3>
             <p className='text-muted-foreground text-sm'>
               Open the workspace to access admin, cashier, and kiosk operations.
             </p>
           </div>
           <Button asChild>
-            {session?.user ? <Link to='/workspace'>Open Workspace</Link> : <Link to='/sign-in'>Sign in to Start</Link>}
+            {session?.user ? (
+              <Link to='/workspace'>Open Workspace</Link>
+            ) : (
+              <Link to='/sign-in'>Sign in to Start</Link>
+            )}
           </Button>
         </div>
       </section>

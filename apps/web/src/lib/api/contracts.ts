@@ -113,7 +113,14 @@ export type RestaurantOrder = Jsonify<
 export type RestaurantOrderStatusPatch = Jsonify<
   Pick<
     OrderRow,
-    'id' | 'restaurantId' | 'tableId' | 'operatorId' | 'status' | 'totalAmount' | 'createdAt' | 'completedAt'
+    | 'id'
+    | 'restaurantId'
+    | 'tableId'
+    | 'operatorId'
+    | 'status'
+    | 'totalAmount'
+    | 'createdAt'
+    | 'completedAt'
   >
 >;
 
