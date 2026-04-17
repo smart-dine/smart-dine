@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as WorkspaceRouteImport } from './routes/workspace'
 import { Route as SignUpRouteImport } from './routes/sign-up'
 import { Route as SignInRouteImport } from './routes/sign-in'
 import { Route as AdminRouteImport } from './routes/admin'
@@ -16,6 +17,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as AdminUsersRouteImport } from './routes/admin.users'
 import { Route as AdminRestaurantsRouteImport } from './routes/admin.restaurants'
+import { Route as RestaurantsRestaurantIdKioskRouteImport } from './routes/restaurants.$restaurantId.kiosk'
 import { Route as RestaurantsRestaurantIdCashierRouteImport } from './routes/restaurants.$restaurantId.cashier'
 import { Route as RestaurantsRestaurantIdAdminRouteImport } from './routes/restaurants.$restaurantId.admin'
 import { Route as RestaurantsRestaurantIdAdminIndexRouteImport } from './routes/restaurants.$restaurantId.admin.index'
@@ -25,6 +27,11 @@ import { Route as RestaurantsRestaurantIdAdminOrdersRouteImport } from './routes
 import { Route as RestaurantsRestaurantIdAdminMenuRouteImport } from './routes/restaurants.$restaurantId.admin.menu'
 import { Route as RestaurantsRestaurantIdAdminFloorPlanRouteImport } from './routes/restaurants.$restaurantId.admin.floor-plan'
 
+const WorkspaceRoute = WorkspaceRouteImport.update({
+  id: '/workspace',
+  path: '/workspace',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SignUpRoute = SignUpRouteImport.update({
   id: '/sign-up',
   path: '/sign-up',
@@ -60,6 +67,12 @@ const AdminRestaurantsRoute = AdminRestaurantsRouteImport.update({
   path: '/restaurants',
   getParentRoute: () => AdminRoute,
 } as any)
+const RestaurantsRestaurantIdKioskRoute =
+  RestaurantsRestaurantIdKioskRouteImport.update({
+    id: '/restaurants/$restaurantId/kiosk',
+    path: '/restaurants/$restaurantId/kiosk',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const RestaurantsRestaurantIdCashierRoute =
   RestaurantsRestaurantIdCashierRouteImport.update({
     id: '/restaurants/$restaurantId/cashier',
@@ -114,11 +127,13 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRouteWithChildren
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
+  '/workspace': typeof WorkspaceRoute
   '/admin/restaurants': typeof AdminRestaurantsRoute
   '/admin/users': typeof AdminUsersRoute
   '/admin/': typeof AdminIndexRoute
   '/restaurants/$restaurantId/admin': typeof RestaurantsRestaurantIdAdminRouteWithChildren
   '/restaurants/$restaurantId/cashier': typeof RestaurantsRestaurantIdCashierRoute
+  '/restaurants/$restaurantId/kiosk': typeof RestaurantsRestaurantIdKioskRoute
   '/restaurants/$restaurantId/admin/floor-plan': typeof RestaurantsRestaurantIdAdminFloorPlanRoute
   '/restaurants/$restaurantId/admin/menu': typeof RestaurantsRestaurantIdAdminMenuRoute
   '/restaurants/$restaurantId/admin/orders': typeof RestaurantsRestaurantIdAdminOrdersRoute
@@ -130,10 +145,12 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
+  '/workspace': typeof WorkspaceRoute
   '/admin/restaurants': typeof AdminRestaurantsRoute
   '/admin/users': typeof AdminUsersRoute
   '/admin': typeof AdminIndexRoute
   '/restaurants/$restaurantId/cashier': typeof RestaurantsRestaurantIdCashierRoute
+  '/restaurants/$restaurantId/kiosk': typeof RestaurantsRestaurantIdKioskRoute
   '/restaurants/$restaurantId/admin/floor-plan': typeof RestaurantsRestaurantIdAdminFloorPlanRoute
   '/restaurants/$restaurantId/admin/menu': typeof RestaurantsRestaurantIdAdminMenuRoute
   '/restaurants/$restaurantId/admin/orders': typeof RestaurantsRestaurantIdAdminOrdersRoute
@@ -147,11 +164,13 @@ export interface FileRoutesById {
   '/admin': typeof AdminRouteWithChildren
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
+  '/workspace': typeof WorkspaceRoute
   '/admin/restaurants': typeof AdminRestaurantsRoute
   '/admin/users': typeof AdminUsersRoute
   '/admin/': typeof AdminIndexRoute
   '/restaurants/$restaurantId/admin': typeof RestaurantsRestaurantIdAdminRouteWithChildren
   '/restaurants/$restaurantId/cashier': typeof RestaurantsRestaurantIdCashierRoute
+  '/restaurants/$restaurantId/kiosk': typeof RestaurantsRestaurantIdKioskRoute
   '/restaurants/$restaurantId/admin/floor-plan': typeof RestaurantsRestaurantIdAdminFloorPlanRoute
   '/restaurants/$restaurantId/admin/menu': typeof RestaurantsRestaurantIdAdminMenuRoute
   '/restaurants/$restaurantId/admin/orders': typeof RestaurantsRestaurantIdAdminOrdersRoute
@@ -166,11 +185,13 @@ export interface FileRouteTypes {
     | '/admin'
     | '/sign-in'
     | '/sign-up'
+    | '/workspace'
     | '/admin/restaurants'
     | '/admin/users'
     | '/admin/'
     | '/restaurants/$restaurantId/admin'
     | '/restaurants/$restaurantId/cashier'
+    | '/restaurants/$restaurantId/kiosk'
     | '/restaurants/$restaurantId/admin/floor-plan'
     | '/restaurants/$restaurantId/admin/menu'
     | '/restaurants/$restaurantId/admin/orders'
@@ -182,10 +203,12 @@ export interface FileRouteTypes {
     | '/'
     | '/sign-in'
     | '/sign-up'
+    | '/workspace'
     | '/admin/restaurants'
     | '/admin/users'
     | '/admin'
     | '/restaurants/$restaurantId/cashier'
+    | '/restaurants/$restaurantId/kiosk'
     | '/restaurants/$restaurantId/admin/floor-plan'
     | '/restaurants/$restaurantId/admin/menu'
     | '/restaurants/$restaurantId/admin/orders'
@@ -198,11 +221,13 @@ export interface FileRouteTypes {
     | '/admin'
     | '/sign-in'
     | '/sign-up'
+    | '/workspace'
     | '/admin/restaurants'
     | '/admin/users'
     | '/admin/'
     | '/restaurants/$restaurantId/admin'
     | '/restaurants/$restaurantId/cashier'
+    | '/restaurants/$restaurantId/kiosk'
     | '/restaurants/$restaurantId/admin/floor-plan'
     | '/restaurants/$restaurantId/admin/menu'
     | '/restaurants/$restaurantId/admin/orders'
@@ -216,12 +241,21 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRouteWithChildren
   SignInRoute: typeof SignInRoute
   SignUpRoute: typeof SignUpRoute
+  WorkspaceRoute: typeof WorkspaceRoute
   RestaurantsRestaurantIdAdminRoute: typeof RestaurantsRestaurantIdAdminRouteWithChildren
   RestaurantsRestaurantIdCashierRoute: typeof RestaurantsRestaurantIdCashierRoute
+  RestaurantsRestaurantIdKioskRoute: typeof RestaurantsRestaurantIdKioskRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/workspace': {
+      id: '/workspace'
+      path: '/workspace'
+      fullPath: '/workspace'
+      preLoaderRoute: typeof WorkspaceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/sign-up': {
       id: '/sign-up'
       path: '/sign-up'
@@ -270,6 +304,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/restaurants'
       preLoaderRoute: typeof AdminRestaurantsRouteImport
       parentRoute: typeof AdminRoute
+    }
+    '/restaurants/$restaurantId/kiosk': {
+      id: '/restaurants/$restaurantId/kiosk'
+      path: '/restaurants/$restaurantId/kiosk'
+      fullPath: '/restaurants/$restaurantId/kiosk'
+      preLoaderRoute: typeof RestaurantsRestaurantIdKioskRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/restaurants/$restaurantId/cashier': {
       id: '/restaurants/$restaurantId/cashier'
@@ -379,9 +420,11 @@ const rootRouteChildren: RootRouteChildren = {
   AdminRoute: AdminRouteWithChildren,
   SignInRoute: SignInRoute,
   SignUpRoute: SignUpRoute,
+  WorkspaceRoute: WorkspaceRoute,
   RestaurantsRestaurantIdAdminRoute:
     RestaurantsRestaurantIdAdminRouteWithChildren,
   RestaurantsRestaurantIdCashierRoute: RestaurantsRestaurantIdCashierRoute,
+  RestaurantsRestaurantIdKioskRoute: RestaurantsRestaurantIdKioskRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
