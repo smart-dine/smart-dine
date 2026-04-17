@@ -142,6 +142,14 @@ function CashierPage() {
             >
               Open order monitor
             </Link>
+            {' '}or{' '}
+            <Link
+              to='/restaurants/$restaurantId/kiosk'
+              params={{ restaurantId }}
+              className='text-primary underline-offset-2 hover:underline'
+            >
+              open kiosk
+            </Link>
             .
           </CardDescription>
         </CardHeader>
