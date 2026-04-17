@@ -1,4 +1,4 @@
-import { staffQueryOptions } from '#/lib/api/staff';
+import { restaurantsQueryOptions } from '#/lib/api/restaurants';
 import { authClient } from '#/lib/auth-client';
 import { Badge } from '@smartdine/ui/components/badge';
 import { Button } from '@smartdine/ui/components/button';
@@ -11,115 +11,200 @@ import {
 } from '@smartdine/ui/components/card';
 import { useQuery } from '@tanstack/react-query';
 import { Link, createFileRoute } from '@tanstack/react-router';
-import { LayoutDashboard, Store } from 'lucide-react';
+import {
+  ArrowRight,
+  Building2,
+  ChefHat,
+  LayoutDashboard,
+  Monitor,
+  SquareMenu,
+} from 'lucide-react';
 
 export const Route = createFileRoute('/')({ component: App });
 
 function App() {
-  const { data: session, isPending: sessionPending } = authClient.useSession();
+  const { data: session } = authClient.useSession();
 
-  const membershipsQuery = useQuery({
-    ...staffQueryOptions.myRestaurants(),
-    enabled: Boolean(session?.user),
-  });
+  const restaurantsQuery = useQuery(restaurantsQueryOptions.list({ limit: 6, offset: 0 }));
 
-  const memberships = membershipsQuery.data ?? [];
+  const restaurants = restaurantsQuery.data ?? [];
 
   return (
-    <main className='container mx-auto flex flex-col gap-6 px-4 py-8'>
-      <section className='bg-card relative overflow-hidden rounded-2xl border p-6 shadow-sm'>
-        <div className='bg-primary/10 absolute -right-24 -bottom-20 size-64 rounded-full blur-3xl' />
-        <div className='relative z-10 space-y-3'>
-          <Badge variant='secondary'>Client SPA</Badge>
-          <h1 className='text-3xl font-semibold tracking-tight md:text-4xl'>
-            Smart Dine Frontend Hub
-          </h1>
-          <p className='text-muted-foreground max-w-2xl'>
-            Access site administration, restaurant operations, and cashier order construction
-            workflows.
-          </p>
+    <main className='container mx-auto flex flex-col gap-10 px-4 py-8 md:py-12'>
+      <section className='bg-card relative overflow-hidden rounded-3xl border p-8 shadow-sm md:p-12'>
+        <div className='from-primary/15 absolute -left-28 top-10 size-56 rounded-full bg-gradient-to-br to-transparent blur-3xl' />
+        <div className='bg-primary/10 absolute -right-20 -bottom-24 size-72 rounded-full blur-3xl' />
 
-          <div className='flex flex-wrap gap-2'>
-            <Button asChild>
-              <Link to='/admin'>
-                <LayoutDashboard className='mr-1 size-4' />
-                Site Admin
-              </Link>
-            </Button>
-            {!session?.user && (
-              <Button
-                asChild
-                variant='outline'
-              >
-                <Link to='/sign-in'>Sign in to continue</Link>
-              </Button>
-            )}
+        <div className='relative z-10 grid gap-6 lg:grid-cols-[1.2fr_0.8fr] lg:items-end'>
+          <div className='space-y-4'>
+            <Badge variant='secondary'>Smart Dine Platform</Badge>
+            <h1 className='text-4xl font-semibold tracking-tight md:text-5xl'>
+              Run modern restaurant operations from one connected platform.
+            </h1>
+            <p className='text-muted-foreground max-w-2xl text-base md:text-lg'>
+              Smart Dine brings reservations, kitchen flow, cashier order creation, and admin
+              controls together so your team can stay aligned during every service window.
+            </p>
+
+            <div className='flex flex-wrap gap-3'>
+              {session?.user ? (
+                <Button asChild>
+                  <Link to='/workspace'>
+                    Open Workspace
+                    <ArrowRight className='ml-1 size-4' />
+                  </Link>
+                </Button>
+              ) : (
+                <Button asChild>
+                  <Link to='/sign-in'>
+                    Sign in to Start
+                    <ArrowRight className='ml-1 size-4' />
+                  </Link>
+                </Button>
+              )}
+
+              {session?.user ? (
+                <Button
+                  asChild
+                  variant='outline'
+                >
+                  <Link to='/admin'>Open Admin</Link>
+                </Button>
+              ) : (
+                <Button
+                  asChild
+                  variant='outline'
+                >
+                  <Link to='/sign-up'>Create Account</Link>
+                </Button>
+              )}
+            </div>
+          </div>
+
+          <div className='grid gap-3 sm:grid-cols-3 lg:grid-cols-1'>
+            <Card className='bg-background/80 border-dashed'>
+              <CardContent className='flex items-center gap-3 p-4'>
+                <LayoutDashboard className='text-primary size-5' />
+                <div>
+                  <p className='text-sm font-medium'>Site Admin</p>
+                  <p className='text-muted-foreground text-xs'>Users, ownership, and restaurants</p>
+                </div>
+              </CardContent>
+            </Card>
+            <Card className='bg-background/80 border-dashed'>
+              <CardContent className='flex items-center gap-3 p-4'>
+                <SquareMenu className='text-primary size-5' />
+                <div>
+                  <p className='text-sm font-medium'>Cashier</p>
+                  <p className='text-muted-foreground text-xs'>Fast table order construction</p>
+                </div>
+              </CardContent>
+            </Card>
+            <Card className='bg-background/80 border-dashed'>
+              <CardContent className='flex items-center gap-3 p-4'>
+                <Monitor className='text-primary size-5' />
+                <div>
+                  <p className='text-sm font-medium'>Kitchen Kiosk</p>
+                  <p className='text-muted-foreground text-xs'>Realtime order stream + completion</p>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </section>
 
-      <section className='grid gap-4 md:grid-cols-2'>
-        {sessionPending ? (
-          <Card className='md:col-span-2'>
+      <section className='grid gap-4 md:grid-cols-3'>
+        <Card>
+          <CardHeader>
+            <CardTitle className='inline-flex items-center gap-2 text-lg'>
+              <Building2 className='size-4' />
+              Multi-Restaurant Admin
+            </CardTitle>
+            <CardDescription>
+              Keep portfolio-wide restaurant and owner management in one control plane.
+            </CardDescription>
+          </CardHeader>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className='inline-flex items-center gap-2 text-lg'>
+              <ChefHat className='size-4' />
+              Service-Time Execution
+            </CardTitle>
+            <CardDescription>
+              Coordinate menu availability, reservations, staffing, and kitchen flow from live data.
+            </CardDescription>
+          </CardHeader>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className='inline-flex items-center gap-2 text-lg'>
+              <Monitor className='size-4' />
+              Realtime Kiosk Signals
+            </CardTitle>
+            <CardDescription>
+              Receive instant order events and complete tickets directly from the kiosk board.
+            </CardDescription>
+          </CardHeader>
+        </Card>
+      </section>
+
+      <section className='space-y-4'>
+        <div className='flex items-end justify-between gap-3'>
+          <div>
+            <h2 className='text-2xl font-semibold tracking-tight'>Featured Restaurants</h2>
+            <p className='text-muted-foreground text-sm'>Public discovery preview from live data.</p>
+          </div>
+        </div>
+
+        {restaurantsQuery.isPending ? (
+          <Card>
             <CardContent className='py-8'>
-              <p className='text-muted-foreground text-sm'>Loading your workspace access...</p>
+              <p className='text-muted-foreground text-sm'>Loading restaurants...</p>
             </CardContent>
           </Card>
-        ) : memberships.length > 0 ? (
-          memberships.map((membership) => (
-            <Card key={membership.id}>
-              <CardHeader>
-                <CardTitle className='inline-flex items-center gap-2 text-lg'>
-                  <Store className='size-4' />
-                  {membership.restaurant.name}
-                </CardTitle>
-                <CardDescription>{membership.restaurant.address}</CardDescription>
-              </CardHeader>
-
-              <CardContent className='space-y-3'>
-                <Badge variant={membership.role === 'owner' ? 'default' : 'secondary'}>
-                  {membership.role}
-                </Badge>
-
-                <div className='flex flex-wrap gap-2'>
-                  <Button
-                    asChild
-                    variant='outline'
-                  >
-                    <Link
-                      to='/restaurants/$restaurantId/admin'
-                      params={{ restaurantId: membership.restaurantId }}
-                    >
-                      Restaurant Admin
-                    </Link>
-                  </Button>
-
-                  <Button
-                    asChild
-                    variant='outline'
-                  >
-                    <Link
-                      to='/restaurants/$restaurantId/cashier'
-                      params={{ restaurantId: membership.restaurantId }}
-                    >
-                      Cashier
-                    </Link>
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))
+        ) : restaurants.length > 0 ? (
+          <div className='grid gap-4 md:grid-cols-2 xl:grid-cols-3'>
+            {restaurants.map((restaurant) => (
+              <Card key={restaurant.id}>
+                <CardHeader>
+                  <CardTitle className='text-lg'>{restaurant.name}</CardTitle>
+                  <CardDescription>{restaurant.address}</CardDescription>
+                </CardHeader>
+                <CardContent className='space-y-2'>
+                  <p className='text-muted-foreground line-clamp-3 text-sm'>
+                    {restaurant.description || 'No description yet.'}
+                  </p>
+                  <p className='text-muted-foreground text-xs'>
+                    Added {new Date(restaurant.createdAt).toLocaleDateString()}
+                  </p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         ) : (
-          <Card className='md:col-span-2'>
-            <CardHeader>
-              <CardTitle>No Restaurant Assignments Yet</CardTitle>
-              <CardDescription>
-                Ask an owner or admin to assign you to a restaurant to access admin and cashier
-                tools.
-              </CardDescription>
-            </CardHeader>
+          <Card>
+            <CardContent className='py-8'>
+              <p className='text-muted-foreground text-sm'>No restaurants are published yet.</p>
+            </CardContent>
           </Card>
         )}
+      </section>
+
+      <section className='bg-card rounded-2xl border p-6 md:p-8'>
+        <div className='flex flex-col gap-3 md:flex-row md:items-center md:justify-between'>
+          <div>
+            <h3 className='text-xl font-semibold tracking-tight'>Ready to run your next service?</h3>
+            <p className='text-muted-foreground text-sm'>
+              Open the workspace to access admin, cashier, and kiosk operations.
+            </p>
+          </div>
+          <Button asChild>
+            {session?.user ? <Link to='/workspace'>Open Workspace</Link> : <Link to='/sign-in'>Sign in to Start</Link>}
+          </Button>
+        </div>
       </section>
     </main>
   );

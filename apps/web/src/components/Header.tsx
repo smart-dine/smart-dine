@@ -20,7 +20,14 @@ export default function Header() {
             to='/'
             className='text-muted-foreground hover:text-foreground [&.active]:text-foreground text-sm font-medium no-underline underline-offset-8 [&.active]:font-semibold [&.active]:underline'
           >
-            Home
+            Landing
+          </Link>
+
+          <Link
+            to='/workspace'
+            className='text-muted-foreground hover:text-foreground [&.active]:text-foreground text-sm font-medium no-underline underline-offset-8 [&.active]:font-semibold [&.active]:underline'
+          >
+            Workspace
           </Link>
 
           <Link
