@@ -42,7 +42,7 @@ export default function BetterAuthHeader() {
               {session.user.image && (
                 <AvatarImage
                   src={session.user.image}
-                  alt={session.user.name ?? ''}
+                  alt={session.user.name}
                 />
               )}
               <AvatarFallback>{initials}</AvatarFallback>
