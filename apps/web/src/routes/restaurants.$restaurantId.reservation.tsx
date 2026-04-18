@@ -1,7 +1,4 @@
-import {
-  createRestaurantReservation,
-  reservationsQueryOptions,
-} from '#/lib/api/reservations';
+import { createRestaurantReservation, reservationsQueryOptions } from '#/lib/api/reservations';
 import { restaurantsQueryOptions } from '#/lib/api/restaurants';
 import type { ReservationAvailabilityQueryInput, RestaurantFloorTable } from '#/lib/api/contracts';
 import { getApiErrorMessage } from '#/lib/api/http';
@@ -89,9 +86,8 @@ function RestaurantReservationPage() {
     createDefaultReservationDateTimeValue,
   );
   const [partySize, setPartySize] = useState('2');
-  const [availabilityRequest, setAvailabilityRequest] = useState<ReservationAvailabilityQueryInput | null>(
-    null,
-  );
+  const [availabilityRequest, setAvailabilityRequest] =
+    useState<ReservationAvailabilityQueryInput | null>(null);
   const [selectedTableId, setSelectedTableId] = useState('');
   const [pageError, setPageError] = useState<string | null>(null);
   const [createdReservationId, setCreatedReservationId] = useState<string | null>(null);
@@ -110,7 +106,8 @@ function RestaurantReservationPage() {
   const availableTables = availabilityQuery.data?.availableTables ?? [];
 
   const sortedAvailableTables = useMemo(
-    () => [...availableTables].sort((left, right) => left.tableNumber.localeCompare(right.tableNumber)),
+    () =>
+      [...availableTables].sort((left, right) => left.tableNumber.localeCompare(right.tableNumber)),
     [availableTables],
   );
 
@@ -297,8 +294,8 @@ function RestaurantReservationPage() {
 
             {availabilityRequest && (
               <p className='text-muted-foreground mt-3 text-sm'>
-                Requested: {formatDateTime(availabilityRequest.from)} for {availabilityRequest.partySize}{' '}
-                guests.
+                Requested: {formatDateTime(availabilityRequest.from)} for{' '}
+                {availabilityRequest.partySize} guests.
               </p>
             )}
 
@@ -350,7 +347,8 @@ function RestaurantReservationPage() {
                   {positionedTables.map((table) => {
                     const isAvailable = availableTableIds.has(table.id);
                     const isSelected = selectedTableId === table.id;
-                    const shapeClass = table.shape === 'round' ? 'h-14 w-14 rounded-full' : 'h-12 w-16 rounded-md';
+                    const shapeClass =
+                      table.shape === 'round' ? 'h-14 w-14 rounded-full' : 'h-12 w-16 rounded-md';
 
                     return (
                       <button
@@ -358,8 +356,8 @@ function RestaurantReservationPage() {
                         type='button'
                         className={
                           `${shapeClass} absolute border text-xs font-medium transition ` +
-                          `${isAvailable ? 'cursor-pointer border-primary/40 bg-primary/10 text-foreground hover:border-primary hover:bg-primary/20' : 'cursor-not-allowed border-border bg-muted text-muted-foreground opacity-75'} ` +
-                          `${isSelected ? 'ring-primary ring-2 ring-offset-2 ring-offset-background' : ''}`
+                          `${isAvailable ? 'border-primary/40 bg-primary/10 text-foreground hover:border-primary hover:bg-primary/20 cursor-pointer' : 'border-border bg-muted text-muted-foreground cursor-not-allowed opacity-75'} ` +
+                          `${isSelected ? 'ring-primary ring-offset-background ring-2 ring-offset-2' : ''}`
                         }
                         style={{
                           left: `${table.leftPercent}%`,
@@ -409,7 +407,9 @@ function RestaurantReservationPage() {
                     });
                   }}
                 >
-                  {createReservationMutation.isPending ? 'Creating reservation...' : 'Reserve selected table'}
+                  {createReservationMutation.isPending
+                    ? 'Creating reservation...'
+                    : 'Reserve selected table'}
                 </Button>
               </>
             )}

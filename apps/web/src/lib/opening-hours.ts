@@ -1,13 +1,6 @@
 import type { OpeningHours } from './api/contracts';
 
-type DayKey =
-  | 'monday'
-  | 'tuesday'
-  | 'wednesday'
-  | 'thursday'
-  | 'friday'
-  | 'saturday'
-  | 'sunday';
+type DayKey = 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday';
 
 type OpeningHoursEntry = {
   opens?: string | null;

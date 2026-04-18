@@ -154,86 +154,86 @@ function App() {
         ) : restaurants.length > 0 ? (
           <div className='space-y-4'>
             <div className='grid gap-4 md:grid-cols-2 xl:grid-cols-3'>
-            {restaurants.map((restaurant) => (
-              <Card
-                key={restaurant.id}
-                className='flex h-full flex-col'
-              >
-                <CardHeader className='space-y-3'>
-                  <div className='flex items-start justify-between gap-3'>
-                    <CardTitle className='text-lg'>{restaurant.name}</CardTitle>
-                    <Badge
-                      variant='outline'
-                      className='shrink-0'
-                    >
-                      <Clock3 className='mr-1 size-3.5' />
-                      {getTodayOpeningHoursLabel(restaurant.openingHours)}
-                    </Badge>
-                  </div>
-                  <CardDescription className='inline-flex items-center gap-1.5'>
-                    <MapPin className='size-3.5' />
-                    {restaurant.address}
-                  </CardDescription>
-                </CardHeader>
-
-                <CardContent className='flex flex-1 flex-col gap-3'>
-                  <p className='text-muted-foreground line-clamp-3 text-sm leading-6'>
-                    {restaurant.description || 'No description available yet.'}
-                  </p>
-
-                  <p className='text-muted-foreground inline-flex items-center gap-1.5 text-xs'>
-                    <Phone className='size-3.5' />
-                    {restaurant.phone}
-                  </p>
-
-                  <div className='mt-auto flex flex-wrap gap-2 pt-2'>
-                    <Button
-                      asChild
-                      size='sm'
-                    >
-                      <Link
-                        to='/restaurants/$restaurantId'
-                        params={{ restaurantId: restaurant.id }}
+              {restaurants.map((restaurant) => (
+                <Card
+                  key={restaurant.id}
+                  className='flex h-full flex-col'
+                >
+                  <CardHeader className='space-y-3'>
+                    <div className='flex items-start justify-between gap-3'>
+                      <CardTitle className='text-lg'>{restaurant.name}</CardTitle>
+                      <Badge
+                        variant='outline'
+                        className='shrink-0'
                       >
-                        View details
-                        <ArrowRight className='ml-1 size-4' />
-                      </Link>
-                    </Button>
+                        <Clock3 className='mr-1 size-3.5' />
+                        {getTodayOpeningHoursLabel(restaurant.openingHours)}
+                      </Badge>
+                    </div>
+                    <CardDescription className='inline-flex items-center gap-1.5'>
+                      <MapPin className='size-3.5' />
+                      {restaurant.address}
+                    </CardDescription>
+                  </CardHeader>
 
-                    {session?.user ? (
+                  <CardContent className='flex flex-1 flex-col gap-3'>
+                    <p className='text-muted-foreground line-clamp-3 text-sm leading-6'>
+                      {restaurant.description || 'No description available yet.'}
+                    </p>
+
+                    <p className='text-muted-foreground inline-flex items-center gap-1.5 text-xs'>
+                      <Phone className='size-3.5' />
+                      {restaurant.phone}
+                    </p>
+
+                    <div className='mt-auto flex flex-wrap gap-2 pt-2'>
                       <Button
                         asChild
                         size='sm'
-                        variant='outline'
                       >
                         <Link
-                          to='/restaurants/$restaurantId/reservation'
+                          to='/restaurants/$restaurantId'
                           params={{ restaurantId: restaurant.id }}
                         >
-                          Reserve
+                          View details
+                          <ArrowRight className='ml-1 size-4' />
                         </Link>
                       </Button>
-                    ) : (
-                      <Button
-                        asChild
-                        size='sm'
-                        variant='outline'
-                      >
-                        <Link
-                          to='/sign-in'
-                          search={{
-                            redirect: `/restaurants/${restaurant.id}/reservation`,
-                          }}
+
+                      {session?.user ? (
+                        <Button
+                          asChild
+                          size='sm'
+                          variant='outline'
                         >
-                          Sign in to reserve
-                        </Link>
-                      </Button>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                          <Link
+                            to='/restaurants/$restaurantId/reservation'
+                            params={{ restaurantId: restaurant.id }}
+                          >
+                            Reserve
+                          </Link>
+                        </Button>
+                      ) : (
+                        <Button
+                          asChild
+                          size='sm'
+                          variant='outline'
+                        >
+                          <Link
+                            to='/sign-in'
+                            search={{
+                              redirect: `/restaurants/${restaurant.id}/reservation`,
+                            }}
+                          >
+                            Sign in to reserve
+                          </Link>
+                        </Button>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
 
             <div className='flex items-center justify-end gap-2'>
               <Button
