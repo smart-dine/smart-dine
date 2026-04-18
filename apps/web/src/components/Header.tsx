@@ -1,4 +1,3 @@
-import { UtensilsCrossed } from 'lucide-react';
 import BetterAuthHeader from '../integrations/better-auth/header-user.tsx';
 import ThemeToggle from './ThemeToggle';
 import { Link } from '@tanstack/react-router';
@@ -11,7 +10,11 @@ export default function Header() {
           to='/'
           className='text-foreground flex items-center gap-2 font-semibold no-underline'
         >
-          <UtensilsCrossed className='text-primary size-8' />
+          <img
+            src='/logo.svg'
+            alt='Smart Dine logo'
+            className='text-primary size-8'
+          />
           <span>Smart Dine</span>
         </Link>
 
