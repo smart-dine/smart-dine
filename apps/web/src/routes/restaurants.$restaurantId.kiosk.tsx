@@ -53,7 +53,7 @@ function KioskPage() {
   const [joinError, setJoinError] = useState<string | null>(null);
   const [pageError, setPageError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<'all' | OrderStatus>('all');
-  const [ordersById, setOrdersById] = useState<Record<string, RestaurantOrder>>({});
+  const [ordersById, setOrdersById] = useState<Partial<Record<string, RestaurantOrder>>>({});
   const [highlightedOrderIds, setHighlightedOrderIds] = useState<Record<string, boolean>>({});
   const [soundEnabled, setSoundEnabled] = useState(false);
   const [completingOrderId, setCompletingOrderId] = useState<string | null>(null);

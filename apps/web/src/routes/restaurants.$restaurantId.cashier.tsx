@@ -78,7 +78,7 @@ function CashierPage() {
 
   const menuItemsById = useMemo(
     () =>
-      menuItems.reduce<Record<string, RestaurantMenuItem>>((accumulator, item) => {
+      menuItems.reduce<Partial<Record<string, RestaurantMenuItem>>>((accumulator, item) => {
         accumulator[item.id] = item;
         return accumulator;
       }, {}),

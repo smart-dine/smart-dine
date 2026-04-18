@@ -181,8 +181,7 @@ function RestaurantStaffPage() {
 
               <TableBody>
                 {staff.map((staffRole) => {
-                  const selectedRole =
-                    roleDraftByStaffId[staffRole.id] ?? (staffRole.role as StaffRole);
+                  const selectedRole = roleDraftByStaffId[staffRole.id] ?? staffRole.role;
 
                   return (
                     <TableRow key={staffRole.id}>
