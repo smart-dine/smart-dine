@@ -83,6 +83,8 @@ export type StaffMembership = Jsonify<
   }
 >;
 
+export type StaffRoleAssignment = Jsonify<StaffRoleRow>;
+
 export type RestaurantStaffAssignment = Jsonify<
   StaffRoleRow & {
     user: Pick<UserRow, 'id' | 'name' | 'email' | 'image' | 'role'>;
@@ -95,6 +97,17 @@ export type RestaurantReservation = Jsonify<
     customer: Pick<UserRow, 'id' | 'name' | 'email' | 'image'>;
   }
 >;
+
+export type RestaurantReservationAvailability = Jsonify<{
+  requestedFrom: string;
+  requestedUntil: string;
+  availableTables: Array<
+    Pick<
+      RestaurantTableRow,
+      'id' | 'tableNumber' | 'capacity' | 'xCoordinate' | 'yCoordinate' | 'shape'
+    >
+  >;
+}>;
 
 export type ReservationStatusUpdated = Jsonify<ReservationRow>;
 
@@ -187,6 +200,17 @@ export interface UpdateStaffRoleInput {
 
 export interface UpdateReservationStatusInput {
   status: ReservationStatus;
+}
+
+export interface ReservationAvailabilityQueryInput {
+  from: string;
+  partySize: number;
+}
+
+export interface CreateReservationInput {
+  tableId: string;
+  reservationTime: string;
+  partySize: number;
 }
 
 export interface UpdateOrderStatusInput {

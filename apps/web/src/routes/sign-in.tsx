@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
+import { createFileRoute, Link } from '@tanstack/react-router';
 import { useState } from 'react';
 import { useForm } from '@tanstack/react-form';
 import { authClient } from '#/lib/auth-client';
@@ -15,12 +15,36 @@ import {
 } from '@smartdine/ui/components/card';
 import { Separator } from '@smartdine/ui/components/separator';
 
+interface AuthRouteSearch {
+  redirect?: string;
+}
+
+const sanitizeRedirectPath = (value: unknown): string | undefined => {
+  if (typeof value !== 'string') {
+    return undefined;
+  }
+
+  if (!value.startsWith('/')) {
+    return undefined;
+  }
+
+  if (value.startsWith('//')) {
+    return undefined;
+  }
+
+  return value;
+};
+
 export const Route = createFileRoute('/sign-in')({
+  validateSearch: (search: Record<string, unknown>): AuthRouteSearch => ({
+    redirect: sanitizeRedirectPath(search.redirect),
+  }),
   component: SignIn,
 });
 
 function SignIn() {
-  const navigate = useNavigate();
+  const { redirect } = Route.useSearch();
+  const redirectPath = redirect ?? '/';
   const [serverError, setServerError] = useState('');
 
   const form = useForm({
@@ -34,13 +58,13 @@ function SignIn() {
       if (error) {
         setServerError(error.message ?? 'Sign in failed. Please check your credentials.');
       } else {
-        await navigate({ to: '/' });
+        window.location.assign(redirectPath);
       }
     },
   });
 
   const handleOAuth = (provider: 'google' | 'github') => {
-    void authClient.signIn.social({ provider, callbackURL: '/' });
+    void authClient.signIn.social({ provider, callbackURL: redirectPath });
   };
 
   return (
@@ -169,6 +193,7 @@ function SignIn() {
             Don't have an account?{' '}
             <Link
               to='/sign-up'
+              search={{ redirect }}
               className='text-primary font-medium underline-offset-4 hover:underline'
             >
               Sign up

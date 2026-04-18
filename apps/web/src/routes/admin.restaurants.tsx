@@ -2,6 +2,7 @@ import {
   adminQueryOptions,
   createAdminRestaurant,
   deleteAdminRestaurant,
+  removeRestaurantOwner,
   updateRestaurantOwner,
 } from '#/lib/api/admin';
 import type { CreateAdminRestaurantInput, OpeningHours } from '#/lib/api/contracts';
@@ -44,8 +45,8 @@ import {
 import { Textarea } from '@smartdine/ui/components/textarea';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
-import { Building2, Plus, Trash2, UserRoundCog } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { Building2, Plus, Trash2, UserMinus, UserRoundCog } from 'lucide-react';
+import { useState } from 'react';
 
 export const Route = createFileRoute('/admin/restaurants')({
   component: AdminRestaurantsPage,
@@ -79,6 +80,7 @@ function AdminRestaurantsPage() {
     Partial<Record<string, string>>
   >({});
   const [formError, setFormError] = useState<string | null>(null);
+  const [tableError, setTableError] = useState<string | null>(null);
 
   const restaurantsQuery = useQuery(adminQueryOptions.restaurants());
   const usersQuery = useQuery(
@@ -93,6 +95,7 @@ function AdminRestaurantsPage() {
     onSuccess: async () => {
       setCreateForm(buildDefaultCreateState());
       setCreateDialogOpen(false);
+      setFormError(null);
       await queryClient.invalidateQueries({
         queryKey: ['admin'],
       });
@@ -106,36 +109,45 @@ function AdminRestaurantsPage() {
     mutationFn: ({ restaurantId, ownerUserId }: { restaurantId: string; ownerUserId: string }) =>
       updateRestaurantOwner(restaurantId, { ownerUserId }),
     onSuccess: async () => {
+      setTableError(null);
       await queryClient.invalidateQueries({
         queryKey: ['admin', 'restaurants'],
       });
+    },
+    onError: (error) => {
+      setTableError(getApiErrorMessage(error, 'Failed to add owner.'));
+    },
+  });
+
+  const removeOwnerMutation = useMutation({
+    mutationFn: ({ restaurantId, ownerUserId }: { restaurantId: string; ownerUserId: string }) =>
+      removeRestaurantOwner(restaurantId, ownerUserId),
+    onSuccess: async () => {
+      setTableError(null);
+      await queryClient.invalidateQueries({
+        queryKey: ['admin', 'restaurants'],
+      });
+    },
+    onError: (error) => {
+      setTableError(getApiErrorMessage(error, 'Failed to remove owner.'));
     },
   });
 
   const deleteMutation = useMutation({
     mutationFn: deleteAdminRestaurant,
     onSuccess: async () => {
+      setTableError(null);
       await queryClient.invalidateQueries({
         queryKey: ['admin', 'restaurants'],
       });
+    },
+    onError: (error) => {
+      setTableError(getApiErrorMessage(error, 'Failed to delete restaurant.'));
     },
   });
 
   const users = usersQuery.data ?? [];
   const restaurants = restaurantsQuery.data ?? [];
-
-  const ownerLookup = useMemo(() => {
-    const map = new Map<string, string>();
-
-    for (const restaurant of restaurants) {
-      const ownerId = restaurant.staffRoles.find((role) => role.role === 'owner')?.userId;
-      if (ownerId) {
-        map.set(restaurant.id, ownerId);
-      }
-    }
-
-    return map;
-  }, [restaurants]);
 
   return (
     <Card>
@@ -146,7 +158,7 @@ function AdminRestaurantsPage() {
             Restaurants
           </CardTitle>
           <CardDescription>
-            Create venues, assign owners, and remove deprecated records.
+            Create venues, add owners, remove owners, and remove deprecated records.
           </CardDescription>
         </div>
 
@@ -279,6 +291,8 @@ function AdminRestaurantsPage() {
       </CardHeader>
 
       <CardContent>
+        {tableError && <p className='text-destructive mb-3 text-sm'>{tableError}</p>}
+
         {restaurantsQuery.isPending ? (
           <p className='text-muted-foreground text-sm'>Loading restaurants...</p>
         ) : (
@@ -286,15 +300,17 @@ function AdminRestaurantsPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>Name</TableHead>
-                <TableHead>Owner</TableHead>
+                <TableHead>Owners</TableHead>
                 <TableHead>Address</TableHead>
                 <TableHead className='text-right'>Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {restaurants.map((restaurant) => {
-                const currentOwnerId = ownerLookup.get(restaurant.id) ?? '';
-                const selectedOwnerId = ownerDraftByRestaurantId[restaurant.id] ?? currentOwnerId;
+                const owners = restaurant.staffRoles;
+                const ownerUserIds = new Set(owners.map((ownerRole) => ownerRole.userId));
+                const selectedOwnerId = ownerDraftByRestaurantId[restaurant.id];
+                const usersToAddAsOwners = users.filter((user) => !ownerUserIds.has(user.id));
 
                 return (
                   <TableRow key={restaurant.id}>
@@ -307,6 +323,49 @@ function AdminRestaurantsPage() {
 
                     <TableCell>
                       <div className='grid gap-2'>
+                        {owners.length > 0 ? (
+                          owners.map((ownerRole) => (
+                            <div
+                              key={ownerRole.id}
+                              className='bg-background flex items-center justify-between gap-2 rounded-md border px-2 py-1.5'
+                            >
+                              <div className='min-w-0'>
+                                <p className='truncate text-sm font-medium'>
+                                  {ownerRole.user.name || 'Unknown user'}
+                                </p>
+                                <p className='text-muted-foreground truncate text-xs'>
+                                  {ownerRole.user.email}
+                                </p>
+                              </div>
+
+                              <Button
+                                variant='ghost'
+                                size='sm'
+                                className='h-7 px-2'
+                                disabled={owners.length <= 1 || removeOwnerMutation.isPending}
+                                onClick={() => {
+                                  const shouldRemove = window.confirm(
+                                    `Remove ${ownerRole.user.name || ownerRole.user.email} as an owner from ${restaurant.name}?`,
+                                  );
+
+                                  if (shouldRemove) {
+                                    setTableError(null);
+                                    removeOwnerMutation.mutate({
+                                      restaurantId: restaurant.id,
+                                      ownerUserId: ownerRole.userId,
+                                    });
+                                  }
+                                }}
+                              >
+                                <UserMinus className='mr-1 size-4' />
+                                Remove
+                              </Button>
+                            </div>
+                          ))
+                        ) : (
+                          <p className='text-muted-foreground text-xs'>No owners assigned.</p>
+                        )}
+
                         <Select
                           value={selectedOwnerId}
                           onValueChange={(value) =>
@@ -317,17 +376,23 @@ function AdminRestaurantsPage() {
                           }
                         >
                           <SelectTrigger className='min-w-60'>
-                            <SelectValue placeholder='Select owner' />
+                            <SelectValue placeholder='Select user to add as owner' />
                           </SelectTrigger>
                           <SelectContent>
-                            {users.map((user) => (
-                              <SelectItem
-                                key={user.id}
-                                value={user.id}
-                              >
-                                {user.name} ({user.email})
-                              </SelectItem>
-                            ))}
+                            {usersToAddAsOwners.length > 0 ? (
+                              usersToAddAsOwners.map((user) => (
+                                <SelectItem
+                                  key={user.id}
+                                  value={user.id}
+                                >
+                                  {user.name} ({user.email})
+                                </SelectItem>
+                              ))
+                            ) : (
+                              <p className='text-muted-foreground px-2 py-1.5 text-sm'>
+                                No additional users available.
+                              </p>
+                            )}
                           </SelectContent>
                         </Select>
 
@@ -335,21 +400,24 @@ function AdminRestaurantsPage() {
                           variant='outline'
                           size='sm'
                           className='w-fit'
-                          disabled={
-                            !selectedOwnerId ||
-                            selectedOwnerId === currentOwnerId ||
-                            assignOwnerMutation.isPending
-                          }
-                          onClick={() =>
+                          disabled={!selectedOwnerId || assignOwnerMutation.isPending}
+                          onClick={() => {
+                            setTableError(null);
                             assignOwnerMutation.mutate({
                               restaurantId: restaurant.id,
                               ownerUserId: selectedOwnerId,
-                            })
-                          }
+                            });
+                          }}
                         >
                           <UserRoundCog className='mr-1 size-4' />
-                          Assign owner
+                          Add owner
                         </Button>
+
+                        {owners.length <= 1 && (
+                          <p className='text-muted-foreground text-xs'>
+                            Each restaurant must keep at least one owner.
+                          </p>
+                        )}
                       </div>
                     </TableCell>
 

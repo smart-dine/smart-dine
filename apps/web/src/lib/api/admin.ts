@@ -5,7 +5,7 @@ import type {
   CreateAdminRestaurantInput,
   DeleteRestaurantResult,
   PaginationQueryInput,
-  StaffMembership,
+  StaffRoleAssignment,
   UpdateRestaurantOwnerInput,
 } from './contracts';
 import { apiRequest } from './http';
@@ -38,9 +38,14 @@ export const deleteAdminRestaurant = (restaurantId: string) =>
   });
 
 export const updateRestaurantOwner = (restaurantId: string, input: UpdateRestaurantOwnerInput) =>
-  apiRequest<StaffMembership>(`/admin/restaurants/${restaurantId}/owner`, {
+  apiRequest<StaffRoleAssignment>(`/admin/restaurants/${restaurantId}/owner`, {
     method: 'PATCH',
     body: input,
+  });
+
+export const removeRestaurantOwner = (restaurantId: string, ownerUserId: string) =>
+  apiRequest<StaffRoleAssignment>(`/admin/restaurants/${restaurantId}/owners/${ownerUserId}`, {
+    method: 'DELETE',
   });
 
 export const adminQueryOptions = {
