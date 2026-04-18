@@ -1,4 +1,4 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { and, asc, eq, ilike, or, schema, type Database } from '@smartdine/db';
 import { DATABASE } from '../database/lib/definitions';
 import type { CreateAdminRestaurantDto } from './dto/create-admin-restaurant.dto';
@@ -160,5 +160,56 @@ export class AdminService {
       .returning();
 
     return created;
+  }
+
+  async removeRestaurantOwner({
+    restaurantId,
+    ownerUserId,
+  }: {
+    restaurantId: string;
+    ownerUserId: string;
+  }) {
+    const restaurant = await this.db.query.restaurants.findFirst({
+      columns: {
+        id: true,
+      },
+      where: (restaurants) => eq(restaurants.id, restaurantId),
+    });
+
+    if (!restaurant) {
+      throw new NotFoundException('Restaurant not found');
+    }
+
+    const ownerStaffRole = await this.db.query.staffRoles.findFirst({
+      where: (staffRoles) =>
+        and(
+          eq(staffRoles.restaurantId, restaurantId),
+          eq(staffRoles.userId, ownerUserId),
+          eq(staffRoles.role, 'owner'),
+        ),
+    });
+
+    if (!ownerStaffRole) {
+      throw new NotFoundException('Owner assignment not found for this restaurant');
+    }
+
+    const ownerRoles = await this.db.query.staffRoles.findMany({
+      columns: {
+        id: true,
+      },
+      where: (staffRoles) =>
+        and(eq(staffRoles.restaurantId, restaurantId), eq(staffRoles.role, 'owner')),
+    });
+
+    if (ownerRoles.length <= 1) {
+      throw new BadRequestException('Restaurant must always have at least one owner');
+    }
+
+    const [removed] = await this.db
+      .delete(schema.staffRoles)
+      .where(eq(schema.staffRoles.id, ownerStaffRole.id))
+      .returning();
+
+    return removed;
   }
 }
