@@ -15,7 +15,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Link, createFileRoute } from '@tanstack/react-router';
 import { ArrowLeft, CalendarClock, Clock3, MapPin, Phone } from 'lucide-react';
 
-export const Route = createFileRoute('/restaurants/$restaurantId')({
+export const Route = createFileRoute('/restaurants/$restaurantId/')({
   component: RestaurantDetailPage,
 });
 

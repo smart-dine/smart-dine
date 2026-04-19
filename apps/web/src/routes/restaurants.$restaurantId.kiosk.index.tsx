@@ -34,7 +34,7 @@ const defaultStatusTotals: Record<OrderStatus, number> = {
   completed: 0,
 };
 
-export const Route = createFileRoute('/restaurants/$restaurantId/kiosk')({
+export const Route = createFileRoute('/restaurants/$restaurantId/kiosk/')({
   component: KioskPage,
 });
 

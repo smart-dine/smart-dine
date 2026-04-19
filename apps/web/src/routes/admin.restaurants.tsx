@@ -405,7 +405,7 @@ function AdminRestaurantsPage() {
                             setTableError(null);
                             assignOwnerMutation.mutate({
                               restaurantId: restaurant.id,
-                              ownerUserId: selectedOwnerId,
+                              ownerUserId: selectedOwnerId as string,
                             });
                           }}
                         >

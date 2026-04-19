@@ -37,7 +37,7 @@ import { useMemo, useState } from 'react';
 
 interface CashierLineItem extends CreateOrderItemInput {}
 
-export const Route = createFileRoute('/restaurants/$restaurantId/cashier')({
+export const Route = createFileRoute('/restaurants/$restaurantId/cashier/')({
   component: CashierPage,
 });
 

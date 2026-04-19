@@ -15,7 +15,8 @@ export default function Header() {
     enabled: isAuthenticated,
   });
 
-  const canAccessWorkspace = userRole === 'admin' || (membershipsQuery.data?.length ?? 0) > 0;
+  const canAccessWorkspace =
+    userRole === 'admin' || ((membershipsQuery.data?.length ?? 0) > 0 && isAuthenticated);
   const canAccessAdmin = userRole === 'admin';
 
   return (
@@ -28,7 +29,7 @@ export default function Header() {
           <img
             src='/logo.svg'
             alt='Smart Dine logo'
-            className='text-primary size-8'
+            className='size-8'
           />
           <span>Smart Dine</span>
         </Link>

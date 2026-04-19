@@ -71,7 +71,7 @@ const toPositionedTables = (tables: RestaurantFloorTable[]): PositionedTable[] =
   }));
 };
 
-export const Route = createFileRoute('/restaurants/$restaurantId/reservation')({
+export const Route = createFileRoute('/restaurants/$restaurantId/reservation/')({
   component: RestaurantReservationPage,
 });
 
