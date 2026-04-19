@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as WorkspaceRouteImport } from './routes/workspace'
 import { Route as SignUpRouteImport } from './routes/sign-up'
 import { Route as SignInRouteImport } from './routes/sign-in'
 import { Route as AdminRouteImport } from './routes/admin'
@@ -16,8 +17,11 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as AdminUsersRouteImport } from './routes/admin.users'
 import { Route as AdminRestaurantsRouteImport } from './routes/admin.restaurants'
-import { Route as RestaurantsRestaurantIdCashierRouteImport } from './routes/restaurants.$restaurantId.cashier'
+import { Route as RestaurantsRestaurantIdIndexRouteImport } from './routes/restaurants.$restaurantId.index'
 import { Route as RestaurantsRestaurantIdAdminRouteImport } from './routes/restaurants.$restaurantId.admin'
+import { Route as RestaurantsRestaurantIdReservationIndexRouteImport } from './routes/restaurants.$restaurantId.reservation.index'
+import { Route as RestaurantsRestaurantIdKioskIndexRouteImport } from './routes/restaurants.$restaurantId.kiosk.index'
+import { Route as RestaurantsRestaurantIdCashierIndexRouteImport } from './routes/restaurants.$restaurantId.cashier.index'
 import { Route as RestaurantsRestaurantIdAdminIndexRouteImport } from './routes/restaurants.$restaurantId.admin.index'
 import { Route as RestaurantsRestaurantIdAdminStaffRouteImport } from './routes/restaurants.$restaurantId.admin.staff'
 import { Route as RestaurantsRestaurantIdAdminReservationsRouteImport } from './routes/restaurants.$restaurantId.admin.reservations'
@@ -25,6 +29,11 @@ import { Route as RestaurantsRestaurantIdAdminOrdersRouteImport } from './routes
 import { Route as RestaurantsRestaurantIdAdminMenuRouteImport } from './routes/restaurants.$restaurantId.admin.menu'
 import { Route as RestaurantsRestaurantIdAdminFloorPlanRouteImport } from './routes/restaurants.$restaurantId.admin.floor-plan'
 
+const WorkspaceRoute = WorkspaceRouteImport.update({
+  id: '/workspace',
+  path: '/workspace',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SignUpRoute = SignUpRouteImport.update({
   id: '/sign-up',
   path: '/sign-up',
@@ -60,16 +69,34 @@ const AdminRestaurantsRoute = AdminRestaurantsRouteImport.update({
   path: '/restaurants',
   getParentRoute: () => AdminRoute,
 } as any)
-const RestaurantsRestaurantIdCashierRoute =
-  RestaurantsRestaurantIdCashierRouteImport.update({
-    id: '/restaurants/$restaurantId/cashier',
-    path: '/restaurants/$restaurantId/cashier',
+const RestaurantsRestaurantIdIndexRoute =
+  RestaurantsRestaurantIdIndexRouteImport.update({
+    id: '/restaurants/$restaurantId/',
+    path: '/restaurants/$restaurantId/',
     getParentRoute: () => rootRouteImport,
   } as any)
 const RestaurantsRestaurantIdAdminRoute =
   RestaurantsRestaurantIdAdminRouteImport.update({
     id: '/restaurants/$restaurantId/admin',
     path: '/restaurants/$restaurantId/admin',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const RestaurantsRestaurantIdReservationIndexRoute =
+  RestaurantsRestaurantIdReservationIndexRouteImport.update({
+    id: '/restaurants/$restaurantId/reservation/',
+    path: '/restaurants/$restaurantId/reservation/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const RestaurantsRestaurantIdKioskIndexRoute =
+  RestaurantsRestaurantIdKioskIndexRouteImport.update({
+    id: '/restaurants/$restaurantId/kiosk/',
+    path: '/restaurants/$restaurantId/kiosk/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const RestaurantsRestaurantIdCashierIndexRoute =
+  RestaurantsRestaurantIdCashierIndexRouteImport.update({
+    id: '/restaurants/$restaurantId/cashier/',
+    path: '/restaurants/$restaurantId/cashier/',
     getParentRoute: () => rootRouteImport,
   } as any)
 const RestaurantsRestaurantIdAdminIndexRoute =
@@ -114,32 +141,40 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRouteWithChildren
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
+  '/workspace': typeof WorkspaceRoute
   '/admin/restaurants': typeof AdminRestaurantsRoute
   '/admin/users': typeof AdminUsersRoute
   '/admin/': typeof AdminIndexRoute
   '/restaurants/$restaurantId/admin': typeof RestaurantsRestaurantIdAdminRouteWithChildren
-  '/restaurants/$restaurantId/cashier': typeof RestaurantsRestaurantIdCashierRoute
+  '/restaurants/$restaurantId/': typeof RestaurantsRestaurantIdIndexRoute
   '/restaurants/$restaurantId/admin/floor-plan': typeof RestaurantsRestaurantIdAdminFloorPlanRoute
   '/restaurants/$restaurantId/admin/menu': typeof RestaurantsRestaurantIdAdminMenuRoute
   '/restaurants/$restaurantId/admin/orders': typeof RestaurantsRestaurantIdAdminOrdersRoute
   '/restaurants/$restaurantId/admin/reservations': typeof RestaurantsRestaurantIdAdminReservationsRoute
   '/restaurants/$restaurantId/admin/staff': typeof RestaurantsRestaurantIdAdminStaffRoute
   '/restaurants/$restaurantId/admin/': typeof RestaurantsRestaurantIdAdminIndexRoute
+  '/restaurants/$restaurantId/cashier/': typeof RestaurantsRestaurantIdCashierIndexRoute
+  '/restaurants/$restaurantId/kiosk/': typeof RestaurantsRestaurantIdKioskIndexRoute
+  '/restaurants/$restaurantId/reservation/': typeof RestaurantsRestaurantIdReservationIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
+  '/workspace': typeof WorkspaceRoute
   '/admin/restaurants': typeof AdminRestaurantsRoute
   '/admin/users': typeof AdminUsersRoute
   '/admin': typeof AdminIndexRoute
-  '/restaurants/$restaurantId/cashier': typeof RestaurantsRestaurantIdCashierRoute
+  '/restaurants/$restaurantId': typeof RestaurantsRestaurantIdIndexRoute
   '/restaurants/$restaurantId/admin/floor-plan': typeof RestaurantsRestaurantIdAdminFloorPlanRoute
   '/restaurants/$restaurantId/admin/menu': typeof RestaurantsRestaurantIdAdminMenuRoute
   '/restaurants/$restaurantId/admin/orders': typeof RestaurantsRestaurantIdAdminOrdersRoute
   '/restaurants/$restaurantId/admin/reservations': typeof RestaurantsRestaurantIdAdminReservationsRoute
   '/restaurants/$restaurantId/admin/staff': typeof RestaurantsRestaurantIdAdminStaffRoute
   '/restaurants/$restaurantId/admin': typeof RestaurantsRestaurantIdAdminIndexRoute
+  '/restaurants/$restaurantId/cashier': typeof RestaurantsRestaurantIdCashierIndexRoute
+  '/restaurants/$restaurantId/kiosk': typeof RestaurantsRestaurantIdKioskIndexRoute
+  '/restaurants/$restaurantId/reservation': typeof RestaurantsRestaurantIdReservationIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -147,17 +182,21 @@ export interface FileRoutesById {
   '/admin': typeof AdminRouteWithChildren
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
+  '/workspace': typeof WorkspaceRoute
   '/admin/restaurants': typeof AdminRestaurantsRoute
   '/admin/users': typeof AdminUsersRoute
   '/admin/': typeof AdminIndexRoute
   '/restaurants/$restaurantId/admin': typeof RestaurantsRestaurantIdAdminRouteWithChildren
-  '/restaurants/$restaurantId/cashier': typeof RestaurantsRestaurantIdCashierRoute
+  '/restaurants/$restaurantId/': typeof RestaurantsRestaurantIdIndexRoute
   '/restaurants/$restaurantId/admin/floor-plan': typeof RestaurantsRestaurantIdAdminFloorPlanRoute
   '/restaurants/$restaurantId/admin/menu': typeof RestaurantsRestaurantIdAdminMenuRoute
   '/restaurants/$restaurantId/admin/orders': typeof RestaurantsRestaurantIdAdminOrdersRoute
   '/restaurants/$restaurantId/admin/reservations': typeof RestaurantsRestaurantIdAdminReservationsRoute
   '/restaurants/$restaurantId/admin/staff': typeof RestaurantsRestaurantIdAdminStaffRoute
   '/restaurants/$restaurantId/admin/': typeof RestaurantsRestaurantIdAdminIndexRoute
+  '/restaurants/$restaurantId/cashier/': typeof RestaurantsRestaurantIdCashierIndexRoute
+  '/restaurants/$restaurantId/kiosk/': typeof RestaurantsRestaurantIdKioskIndexRoute
+  '/restaurants/$restaurantId/reservation/': typeof RestaurantsRestaurantIdReservationIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -166,49 +205,61 @@ export interface FileRouteTypes {
     | '/admin'
     | '/sign-in'
     | '/sign-up'
+    | '/workspace'
     | '/admin/restaurants'
     | '/admin/users'
     | '/admin/'
     | '/restaurants/$restaurantId/admin'
-    | '/restaurants/$restaurantId/cashier'
+    | '/restaurants/$restaurantId/'
     | '/restaurants/$restaurantId/admin/floor-plan'
     | '/restaurants/$restaurantId/admin/menu'
     | '/restaurants/$restaurantId/admin/orders'
     | '/restaurants/$restaurantId/admin/reservations'
     | '/restaurants/$restaurantId/admin/staff'
     | '/restaurants/$restaurantId/admin/'
+    | '/restaurants/$restaurantId/cashier/'
+    | '/restaurants/$restaurantId/kiosk/'
+    | '/restaurants/$restaurantId/reservation/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/sign-in'
     | '/sign-up'
+    | '/workspace'
     | '/admin/restaurants'
     | '/admin/users'
     | '/admin'
-    | '/restaurants/$restaurantId/cashier'
+    | '/restaurants/$restaurantId'
     | '/restaurants/$restaurantId/admin/floor-plan'
     | '/restaurants/$restaurantId/admin/menu'
     | '/restaurants/$restaurantId/admin/orders'
     | '/restaurants/$restaurantId/admin/reservations'
     | '/restaurants/$restaurantId/admin/staff'
     | '/restaurants/$restaurantId/admin'
+    | '/restaurants/$restaurantId/cashier'
+    | '/restaurants/$restaurantId/kiosk'
+    | '/restaurants/$restaurantId/reservation'
   id:
     | '__root__'
     | '/'
     | '/admin'
     | '/sign-in'
     | '/sign-up'
+    | '/workspace'
     | '/admin/restaurants'
     | '/admin/users'
     | '/admin/'
     | '/restaurants/$restaurantId/admin'
-    | '/restaurants/$restaurantId/cashier'
+    | '/restaurants/$restaurantId/'
     | '/restaurants/$restaurantId/admin/floor-plan'
     | '/restaurants/$restaurantId/admin/menu'
     | '/restaurants/$restaurantId/admin/orders'
     | '/restaurants/$restaurantId/admin/reservations'
     | '/restaurants/$restaurantId/admin/staff'
     | '/restaurants/$restaurantId/admin/'
+    | '/restaurants/$restaurantId/cashier/'
+    | '/restaurants/$restaurantId/kiosk/'
+    | '/restaurants/$restaurantId/reservation/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -216,12 +267,23 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRouteWithChildren
   SignInRoute: typeof SignInRoute
   SignUpRoute: typeof SignUpRoute
+  WorkspaceRoute: typeof WorkspaceRoute
   RestaurantsRestaurantIdAdminRoute: typeof RestaurantsRestaurantIdAdminRouteWithChildren
-  RestaurantsRestaurantIdCashierRoute: typeof RestaurantsRestaurantIdCashierRoute
+  RestaurantsRestaurantIdIndexRoute: typeof RestaurantsRestaurantIdIndexRoute
+  RestaurantsRestaurantIdCashierIndexRoute: typeof RestaurantsRestaurantIdCashierIndexRoute
+  RestaurantsRestaurantIdKioskIndexRoute: typeof RestaurantsRestaurantIdKioskIndexRoute
+  RestaurantsRestaurantIdReservationIndexRoute: typeof RestaurantsRestaurantIdReservationIndexRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/workspace': {
+      id: '/workspace'
+      path: '/workspace'
+      fullPath: '/workspace'
+      preLoaderRoute: typeof WorkspaceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/sign-up': {
       id: '/sign-up'
       path: '/sign-up'
@@ -271,11 +333,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminRestaurantsRouteImport
       parentRoute: typeof AdminRoute
     }
-    '/restaurants/$restaurantId/cashier': {
-      id: '/restaurants/$restaurantId/cashier'
-      path: '/restaurants/$restaurantId/cashier'
-      fullPath: '/restaurants/$restaurantId/cashier'
-      preLoaderRoute: typeof RestaurantsRestaurantIdCashierRouteImport
+    '/restaurants/$restaurantId/': {
+      id: '/restaurants/$restaurantId/'
+      path: '/restaurants/$restaurantId'
+      fullPath: '/restaurants/$restaurantId/'
+      preLoaderRoute: typeof RestaurantsRestaurantIdIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/restaurants/$restaurantId/admin': {
@@ -283,6 +345,27 @@ declare module '@tanstack/react-router' {
       path: '/restaurants/$restaurantId/admin'
       fullPath: '/restaurants/$restaurantId/admin'
       preLoaderRoute: typeof RestaurantsRestaurantIdAdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/restaurants/$restaurantId/reservation/': {
+      id: '/restaurants/$restaurantId/reservation/'
+      path: '/restaurants/$restaurantId/reservation'
+      fullPath: '/restaurants/$restaurantId/reservation/'
+      preLoaderRoute: typeof RestaurantsRestaurantIdReservationIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/restaurants/$restaurantId/kiosk/': {
+      id: '/restaurants/$restaurantId/kiosk/'
+      path: '/restaurants/$restaurantId/kiosk'
+      fullPath: '/restaurants/$restaurantId/kiosk/'
+      preLoaderRoute: typeof RestaurantsRestaurantIdKioskIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/restaurants/$restaurantId/cashier/': {
+      id: '/restaurants/$restaurantId/cashier/'
+      path: '/restaurants/$restaurantId/cashier'
+      fullPath: '/restaurants/$restaurantId/cashier/'
+      preLoaderRoute: typeof RestaurantsRestaurantIdCashierIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/restaurants/$restaurantId/admin/': {
@@ -379,9 +462,16 @@ const rootRouteChildren: RootRouteChildren = {
   AdminRoute: AdminRouteWithChildren,
   SignInRoute: SignInRoute,
   SignUpRoute: SignUpRoute,
+  WorkspaceRoute: WorkspaceRoute,
   RestaurantsRestaurantIdAdminRoute:
     RestaurantsRestaurantIdAdminRouteWithChildren,
-  RestaurantsRestaurantIdCashierRoute: RestaurantsRestaurantIdCashierRoute,
+  RestaurantsRestaurantIdIndexRoute: RestaurantsRestaurantIdIndexRoute,
+  RestaurantsRestaurantIdCashierIndexRoute:
+    RestaurantsRestaurantIdCashierIndexRoute,
+  RestaurantsRestaurantIdKioskIndexRoute:
+    RestaurantsRestaurantIdKioskIndexRoute,
+  RestaurantsRestaurantIdReservationIndexRoute:
+    RestaurantsRestaurantIdReservationIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

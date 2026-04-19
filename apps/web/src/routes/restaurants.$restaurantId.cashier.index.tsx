@@ -37,7 +37,7 @@ import { useMemo, useState } from 'react';
 
 interface CashierLineItem extends CreateOrderItemInput {}
 
-export const Route = createFileRoute('/restaurants/$restaurantId/cashier')({
+export const Route = createFileRoute('/restaurants/$restaurantId/cashier/')({
   component: CashierPage,
 });
 
@@ -78,7 +78,7 @@ function CashierPage() {
 
   const menuItemsById = useMemo(
     () =>
-      menuItems.reduce<Record<string, RestaurantMenuItem>>((accumulator, item) => {
+      menuItems.reduce<Partial<Record<string, RestaurantMenuItem>>>((accumulator, item) => {
         accumulator[item.id] = item;
         return accumulator;
       }, {}),
@@ -141,6 +141,14 @@ function CashierPage() {
               className='text-primary underline-offset-2 hover:underline'
             >
               Open order monitor
+            </Link>{' '}
+            or{' '}
+            <Link
+              to='/restaurants/$restaurantId/kiosk'
+              params={{ restaurantId }}
+              className='text-primary underline-offset-2 hover:underline'
+            >
+              open kiosk
             </Link>
             .
           </CardDescription>

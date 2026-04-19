@@ -61,7 +61,7 @@ function RestaurantFloorPlanPage() {
         capacity: Number(table.capacity),
         xCoordinate: Number(table.xCoordinate),
         yCoordinate: Number(table.yCoordinate),
-        shape: table.shape as TableShape,
+        shape: table.shape,
       })),
     );
   }, [floorMapQuery.data]);

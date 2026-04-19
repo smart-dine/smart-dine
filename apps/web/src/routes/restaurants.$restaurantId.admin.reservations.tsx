@@ -111,8 +111,7 @@ function RestaurantReservationsPage() {
             <TableBody>
               {reservations.map((reservation) => {
                 const selectedStatus =
-                  statusDraftByReservationId[reservation.id] ??
-                  (reservation.status as ReservationStatus);
+                  statusDraftByReservationId[reservation.id] ?? reservation.status;
 
                 return (
                   <TableRow key={reservation.id}>

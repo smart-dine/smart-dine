@@ -10,6 +10,7 @@ import {
   Query,
 } from '@nestjs/common';
 import {
+  ApiBadRequestResponse,
   ApiCookieAuth,
   ApiCreatedResponse,
   ApiForbiddenResponse,
@@ -120,6 +121,34 @@ export class AdminController {
     return this.adminService.assignRestaurantOwner({
       restaurantId,
       ownerUserId: body.ownerUserId,
+    });
+  }
+
+  @Delete('restaurants/:restaurantId/owners/:ownerUserId')
+  @ApiOperation({ summary: 'Remove an owner assignment from a restaurant' })
+  @ApiParam({ name: 'restaurantId', format: 'uuid' })
+  @ApiParam({
+    name: 'ownerUserId',
+    description: 'Owner user id to remove from this restaurant.',
+    example: '7f44699a-8dde-46ff-a8ac-ef0eb3dc51b8',
+  })
+  @ApiOkResponse({
+    description: 'Removed owner assignment record.',
+    schema: {
+      type: 'object',
+    },
+  })
+  @ApiBadRequestResponse({ description: 'Restaurant must keep at least one owner.' })
+  @ApiUnauthorizedResponse({ description: 'Authentication is required.' })
+  @ApiForbiddenResponse({ description: 'System admin role is required.' })
+  @ApiNotFoundResponse({ description: 'Restaurant or owner assignment was not found.' })
+  removeRestaurantOwner(
+    @Param('restaurantId', ParseUUIDPipe) restaurantId: string,
+    @Param('ownerUserId') ownerUserId: string,
+  ) {
+    return this.adminService.removeRestaurantOwner({
+      restaurantId,
+      ownerUserId,
     });
   }
 }

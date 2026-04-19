@@ -1,11 +1,28 @@
 import { queryOptions } from '@tanstack/react-query';
 import type {
+  CreateReservationInput,
+  ReservationAvailabilityQueryInput,
+  RestaurantReservationAvailability,
   ReservationStatusUpdated,
   RestaurantReservation,
   UpdateReservationStatusInput,
 } from './contracts';
 import { apiRequest } from './http';
 import { queryKeys } from './query-keys';
+
+export const getRestaurantReservationAvailability = (
+  restaurantId: string,
+  query: ReservationAvailabilityQueryInput,
+) =>
+  apiRequest<RestaurantReservationAvailability>(`/restaurants/${restaurantId}/availability`, {
+    query,
+  });
+
+export const createRestaurantReservation = (restaurantId: string, input: CreateReservationInput) =>
+  apiRequest<ReservationStatusUpdated>(`/restaurants/${restaurantId}/reservations`, {
+    method: 'POST',
+    body: input,
+  });
 
 export const getRestaurantReservations = (restaurantId: string) =>
   apiRequest<RestaurantReservation[]>(`/restaurants/${restaurantId}/reservations`);
@@ -25,6 +42,22 @@ export const cancelReservation = (reservationId: string) =>
   });
 
 export const reservationsQueryOptions = {
+  availability: (
+    restaurantId: string,
+    query: ReservationAvailabilityQueryInput,
+    enabled = true,
+  ) => {
+    const normalizedQuery = {
+      from: query.from,
+      partySize: query.partySize,
+    };
+
+    return queryOptions({
+      queryKey: queryKeys.restaurants.reservationAvailability(restaurantId, normalizedQuery),
+      queryFn: () => getRestaurantReservationAvailability(restaurantId, normalizedQuery),
+      enabled: Boolean(restaurantId) && enabled,
+    });
+  },
   restaurantReservations: (restaurantId: string) =>
     queryOptions({
       queryKey: queryKeys.restaurants.reservations(restaurantId),

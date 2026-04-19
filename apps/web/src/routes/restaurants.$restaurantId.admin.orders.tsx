@@ -136,7 +136,7 @@ function RestaurantOrdersPage() {
       ) : (
         <div className='grid gap-3'>
           {orders.map((order) => {
-            const selectedStatus = statusDraftByOrderId[order.id] ?? (order.status as OrderStatus);
+            const selectedStatus = statusDraftByOrderId[order.id] ?? order.status;
 
             return (
               <Card key={order.id}>

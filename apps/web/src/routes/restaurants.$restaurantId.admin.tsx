@@ -4,7 +4,7 @@ import { Button } from '@smartdine/ui/components/button';
 import { Card, CardDescription, CardHeader, CardTitle } from '@smartdine/ui/components/card';
 import { useQuery } from '@tanstack/react-query';
 import { Link, Navigate, Outlet, createFileRoute } from '@tanstack/react-router';
-import { LayoutDashboard, SquareMenu } from 'lucide-react';
+import { LayoutDashboard, Monitor, SquareMenu } from 'lucide-react';
 
 export const Route = createFileRoute('/restaurants/$restaurantId/admin')({
   component: RestaurantAdminLayout,
@@ -140,6 +140,19 @@ function RestaurantAdminLayout() {
               >
                 <SquareMenu className='mr-1 size-4' />
                 Cashier
+              </Link>
+            </Button>
+
+            <Button
+              asChild
+              variant='outline'
+            >
+              <Link
+                to='/restaurants/$restaurantId/kiosk'
+                params={{ restaurantId }}
+              >
+                <Monitor className='mr-1 size-4' />
+                Kiosk
               </Link>
             </Button>
           </div>

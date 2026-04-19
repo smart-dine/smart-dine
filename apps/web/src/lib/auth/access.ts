@@ -2,7 +2,7 @@ import { staffQueryOptions } from '#/lib/api/staff';
 import { authClient } from '#/lib/auth-client';
 import { useQuery } from '@tanstack/react-query';
 
-export type RestaurantRouteAccess = 'admin' | 'cashier';
+export type RestaurantRouteAccess = 'admin' | 'cashier' | 'kiosk';
 
 export const useAuthSession = () => authClient.useSession();
 
