@@ -20,22 +20,15 @@ import { Bell, Monitor, RefreshCw, SquareMenu, Wifi, WifiOff } from 'lucide-reac
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 const orderStatuses: OrderStatus[] = ['placed', 'completed'];
-type KioskStatusFilter = 'all' | OrderStatus;
+type KioskStatusFilter = OrderStatus;
 
 const statusFilters: Array<{ value: KioskStatusFilter; label: string }> = [
-  { value: 'all', label: 'All Orders' },
   { value: 'placed', label: 'Placed' },
   { value: 'completed', label: 'Completed' },
 ];
 
-const ORDER_DISMISS_DELAY_MS = 5_000;
 const PLACED_WARNING_MINUTES = 8;
 const PLACED_URGENT_MINUTES = 15;
-
-const statusPriority: Record<OrderStatus, number> = {
-  placed: 0,
-  completed: 1,
-};
 
 const placedFreshCardTone =
   'border-emerald-300/60 bg-emerald-50/55 dark:border-emerald-500/35 dark:bg-emerald-950/20';
@@ -49,6 +42,15 @@ const completedCardTone =
 const defaultStatusTotals: Record<OrderStatus, number> = {
   placed: 0,
   completed: 0,
+};
+
+const getDateTimestamp = (value: string | null | undefined) => {
+  if (!value) {
+    return 0;
+  }
+
+  const timestamp = new Date(value).getTime();
+  return Number.isNaN(timestamp) ? 0 : timestamp;
 };
 
 const getPlacedMinutes = (createdAt: string, nowMs: number) => {
@@ -98,56 +100,12 @@ function KioskPage() {
   const [connectionState, setConnectionState] = useState<KioskConnectionState>('connecting');
   const [joinError, setJoinError] = useState<string | null>(null);
   const [pageError, setPageError] = useState<string | null>(null);
-  const [statusFilter, setStatusFilter] = useState<KioskStatusFilter>('all');
+  const [statusFilter, setStatusFilter] = useState<KioskStatusFilter>('placed');
   const [ordersById, setOrdersById] = useState<Partial<Record<string, RestaurantOrder>>>({});
   const [highlightedOrderIds, setHighlightedOrderIds] = useState<Record<string, boolean>>({});
   const [soundEnabled, setSoundEnabled] = useState(false);
   const [completingOrderId, setCompletingOrderId] = useState<string | null>(null);
   const [nowMs, setNowMs] = useState(() => Date.now());
-
-  const completedDismissTimersRef = useRef<Map<string, number>>(new Map());
-  const dismissedCompletedOrderIdsRef = useRef<Set<string>>(new Set());
-
-  const clearCompletedDismissTimer = (orderId: string) => {
-    const timerId = completedDismissTimersRef.current.get(orderId);
-    if (timerId === undefined) {
-      return;
-    }
-
-    window.clearTimeout(timerId);
-    completedDismissTimersRef.current.delete(orderId);
-  };
-
-  const scheduleCompletedDismissal = (orderId: string) => {
-    clearCompletedDismissTimer(orderId);
-
-    const timerId = window.setTimeout(() => {
-      dismissedCompletedOrderIdsRef.current.add(orderId);
-      completedDismissTimersRef.current.delete(orderId);
-
-      setOrdersById((current) => {
-        if (!current[orderId]) {
-          return current;
-        }
-
-        const next = { ...current };
-        delete next[orderId];
-        return next;
-      });
-
-      setHighlightedOrderIds((current) => {
-        if (!current[orderId]) {
-          return current;
-        }
-
-        const next = { ...current };
-        delete next[orderId];
-        return next;
-      });
-    }, ORDER_DISMISS_DELAY_MS);
-
-    completedDismissTimersRef.current.set(orderId, timerId);
-  };
 
   useEffect(() => {
     const storedPreference = window.localStorage.getItem('smartdine:kiosk-sound-enabled');
@@ -168,12 +126,6 @@ function KioskPage() {
 
   useEffect(() => {
     return () => {
-      for (const timerId of completedDismissTimersRef.current.values()) {
-        window.clearTimeout(timerId);
-      }
-
-      completedDismissTimersRef.current.clear();
-
       if (audioContextRef.current) {
         void audioContextRef.current.close();
         audioContextRef.current = null;
@@ -186,44 +138,11 @@ function KioskPage() {
       return;
     }
 
-    const activeOrderIds: string[] = [];
-    const completedOrderIds: string[] = [];
-
-    setOrdersById((current) => {
-      const next = { ...current };
-
-      for (const order of ordersQuery.data) {
-        if (order.status === 'completed') {
-          if (dismissedCompletedOrderIdsRef.current.has(order.id)) {
-            continue;
-          }
-
-          if (next[order.id]) {
-            next[order.id] = {
-              ...next[order.id],
-              ...order,
-            };
-            completedOrderIds.push(order.id);
-          }
-
-          continue;
-        }
-
-        activeOrderIds.push(order.id);
-        next[order.id] = order;
-      }
-
-      return next;
-    });
-
-    for (const orderId of activeOrderIds) {
-      dismissedCompletedOrderIdsRef.current.delete(orderId);
-      clearCompletedDismissTimer(orderId);
-    }
-
-    for (const orderId of completedOrderIds) {
-      scheduleCompletedDismissal(orderId);
-    }
+    setOrdersById(
+      Object.fromEntries(ordersQuery.data.map((order) => [order.id, order])) as Partial<
+        Record<string, RestaurantOrder>
+      >,
+    );
   }, [ordersQuery.data]);
 
   const playNewOrderTone = () => {
@@ -257,14 +176,6 @@ function KioskPage() {
   };
 
   const applyStatusPatch = (patch: RestaurantOrderStatusPatch) => {
-    if (patch.status === 'completed') {
-      dismissedCompletedOrderIdsRef.current.delete(patch.id);
-      scheduleCompletedDismissal(patch.id);
-    } else {
-      dismissedCompletedOrderIdsRef.current.delete(patch.id);
-      clearCompletedDismissTimer(patch.id);
-    }
-
     setOrdersById((current) => {
       const existing = current[patch.id];
       if (!existing) {
@@ -351,7 +262,6 @@ function KioskPage() {
     },
     onSuccess: async (_data, orderId) => {
       setPageError(null);
-      dismissedCompletedOrderIdsRef.current.delete(orderId);
       setOrdersById((current) => {
         const existing = current[orderId];
         if (!existing) {
@@ -367,8 +277,6 @@ function KioskPage() {
           },
         };
       });
-
-      scheduleCompletedDismissal(orderId);
 
       await queryClient.invalidateQueries({
         queryKey: ['restaurants', 'orders', restaurantId],
@@ -387,25 +295,33 @@ function KioskPage() {
   });
 
   const orders = useMemo(
-    () =>
-      Object.values(ordersById)
-        .filter((order): order is RestaurantOrder => Boolean(order))
-        .sort((a, b) => {
-          const byStatus = statusPriority[a.status] - statusPriority[b.status];
-          if (byStatus !== 0) {
-            return byStatus;
-          }
-
-          return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-        }),
+    () => Object.values(ordersById).filter((order): order is RestaurantOrder => Boolean(order)),
     [ordersById],
   );
 
-  const filteredOrders = useMemo(
+  const placedOrders = useMemo(
     () =>
-      statusFilter === 'all' ? orders : orders.filter((order) => order.status === statusFilter),
-    [orders, statusFilter],
+      [...orders]
+        .filter((order) => order.status === 'placed')
+        .sort(
+          (left, right) => getDateTimestamp(left.createdAt) - getDateTimestamp(right.createdAt),
+        ),
+    [orders],
   );
+
+  const completedOrders = useMemo(
+    () =>
+      [...orders]
+        .filter((order) => order.status === 'completed')
+        .sort(
+          (left, right) =>
+            getDateTimestamp(right.completedAt ?? right.createdAt) -
+            getDateTimestamp(left.completedAt ?? left.createdAt),
+        ),
+    [orders],
+  );
+
+  const filteredOrders = statusFilter === 'placed' ? placedOrders : completedOrders;
 
   const statusTotals = useMemo(
     () =>
@@ -617,7 +533,7 @@ function KioskPage() {
                   {completeOrderMutation.isPending && completingOrderId === order.id
                     ? 'Completing...'
                     : order.status === 'completed'
-                      ? 'Completed - clearing...'
+                      ? 'Completed'
                       : 'Complete order'}
                 </Button>
               </CardContent>
@@ -628,7 +544,9 @@ function KioskPage() {
         <Card>
           <CardContent className='py-10'>
             <p className='text-muted-foreground text-base'>
-              No active orders in the kitchen queue.
+              {statusFilter === 'placed'
+                ? 'No placed orders in the kitchen queue.'
+                : 'No completed orders yet.'}
             </p>
           </CardContent>
         </Card>
@@ -637,8 +555,7 @@ function KioskPage() {
       <Card className='bg-card/60'>
         <CardContent className='flex flex-wrap items-center justify-between gap-3 py-4'>
           <p className='text-muted-foreground text-sm'>
-            Placed orders shift from green to amber to red as wait time increases. Completed orders
-            stay visible for 5 seconds, then leave the active board.
+            Placed orders shift from green to amber to red as wait time increases.
           </p>
           <Button
             asChild
