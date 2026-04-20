@@ -23,7 +23,7 @@ import { createFileRoute } from '@tanstack/react-router';
 import { ClipboardList } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
-const orderStatuses: OrderStatus[] = ['placed', 'preparing', 'ready', 'completed'];
+const orderStatuses: OrderStatus[] = ['placed', 'completed'];
 
 export const Route = createFileRoute('/restaurants/$restaurantId/admin/orders')({
   component: RestaurantOrdersPage,
@@ -67,8 +67,6 @@ function RestaurantOrdersPage() {
         }),
         {
           placed: 0,
-          preparing: 0,
-          ready: 0,
           completed: 0,
         },
       ),
@@ -84,9 +82,7 @@ function RestaurantOrdersPage() {
               <ClipboardList className='size-4' />
               Order Monitor
             </CardTitle>
-            <CardDescription>
-              Track and move order states across the kitchen lifecycle.
-            </CardDescription>
+            <CardDescription>Track placed orders and mark them as completed.</CardDescription>
           </div>
 
           <Select
@@ -111,7 +107,7 @@ function RestaurantOrdersPage() {
         </CardHeader>
 
         <CardContent className='space-y-3'>
-          <div className='grid gap-2 sm:grid-cols-2 lg:grid-cols-4'>
+          <div className='grid gap-2 sm:grid-cols-2'>
             {orderStatuses.map((status) => (
               <div
                 key={status}

@@ -41,7 +41,7 @@ function RestaurantStaffPage() {
   const queryClient = useQueryClient();
   const { restaurantId } = Route.useParams();
 
-  const [newUserId, setNewUserId] = useState('');
+  const [newUserEmail, setNewUserEmail] = useState('');
   const [newRole, setNewRole] = useState<StaffRole>('employee');
   const [roleDraftByStaffId, setRoleDraftByStaffId] = useState<Record<string, StaffRole>>({});
   const [pageError, setPageError] = useState<string | null>(null);
@@ -55,10 +55,10 @@ function RestaurantStaffPage() {
   };
 
   const addMutation = useMutation({
-    mutationFn: ({ userId, role }: { userId: string; role: StaffRole }) =>
-      addStaffRole(restaurantId, { userId, role }),
+    mutationFn: ({ email, role }: { email: string; role: StaffRole }) =>
+      addStaffRole(restaurantId, { email, role }),
     onSuccess: async () => {
-      setNewUserId('');
+      setNewUserEmail('');
       setNewRole('employee');
       setPageError(null);
       await invalidateStaff();
@@ -98,9 +98,7 @@ function RestaurantStaffPage() {
       <Card>
         <CardHeader>
           <CardTitle>Assign Staff Role</CardTitle>
-          <CardDescription>
-            Add by user id and role. You can copy user ids from the site admin user list.
-          </CardDescription>
+          <CardDescription>Add by user email and role.</CardDescription>
         </CardHeader>
 
         <CardContent>
@@ -109,17 +107,20 @@ function RestaurantStaffPage() {
             onSubmit={(event) => {
               event.preventDefault();
               addMutation.mutate({
-                userId: newUserId,
+                email: newUserEmail,
                 role: newRole,
               });
             }}
           >
             <div className='grid gap-2'>
-              <Label htmlFor='staff-user-id'>User ID</Label>
+              <Label htmlFor='staff-user-email'>User Email</Label>
               <Input
-                id='staff-user-id'
-                value={newUserId}
-                onChange={(event) => setNewUserId(event.target.value)}
+                id='staff-user-email'
+                type='email'
+                autoComplete='email'
+                placeholder='staff@example.com'
+                value={newUserEmail}
+                onChange={(event) => setNewUserEmail(event.target.value)}
                 required
               />
             </div>

@@ -75,7 +75,7 @@ function RestaurantAdminOverviewPage() {
         </CardHeader>
         <CardContent>
           <p className='text-3xl font-semibold'>{activeOrders}</p>
-          <p className='text-muted-foreground text-xs'>Placed, preparing, or ready</p>
+          <p className='text-muted-foreground text-xs'>Placed and awaiting completion</p>
         </CardContent>
       </Card>
 
