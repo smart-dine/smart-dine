@@ -11,7 +11,7 @@ import {
 } from '@smartdine/ui/components/card';
 import { useQuery } from '@tanstack/react-query';
 import { Link, createFileRoute } from '@tanstack/react-router';
-import { LayoutDashboard, Monitor, SquareMenu, Store } from 'lucide-react';
+import { Monitor, SquareMenu, Store } from 'lucide-react';
 
 export const Route = createFileRoute('/workspace')({
   component: WorkspacePage,
@@ -35,26 +35,19 @@ function WorkspacePage() {
           <Badge variant='secondary'>Operations Workspace</Badge>
           <h1 className='text-3xl font-semibold tracking-tight md:text-4xl'>Smart Dine Console</h1>
           <p className='text-muted-foreground max-w-2xl'>
-            Open site administration, restaurant operations, cashier order creation, and the live
-            kitchen kiosk.
+            Open restaurant operations, cashier order creation, and the live kitchen kiosk.
           </p>
 
-          <div className='flex flex-wrap gap-2'>
-            <Button asChild>
-              <Link to='/admin'>
-                <LayoutDashboard className='mr-1 size-4' />
-                Site Admin
-              </Link>
-            </Button>
-            {!session?.user && (
+          {!session?.user && (
+            <div className='flex flex-wrap gap-2'>
               <Button
                 asChild
                 variant='outline'
               >
                 <Link to='/sign-in'>Sign in to open workspace</Link>
               </Button>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       </section>
 
@@ -91,17 +84,19 @@ function WorkspacePage() {
                 </Badge>
 
                 <div className='flex flex-wrap gap-2'>
-                  <Button
-                    asChild
-                    variant='outline'
-                  >
-                    <Link
-                      to='/restaurants/$restaurantId/admin'
-                      params={{ restaurantId: membership.restaurantId }}
+                  {membership.role === 'owner' && (
+                    <Button
+                      asChild
+                      variant='outline'
                     >
-                      Restaurant Admin
-                    </Link>
-                  </Button>
+                      <Link
+                        to='/restaurants/$restaurantId/admin'
+                        params={{ restaurantId: membership.restaurantId }}
+                      >
+                        Restaurant Admin
+                      </Link>
+                    </Button>
+                  )}
 
                   <Button
                     asChild

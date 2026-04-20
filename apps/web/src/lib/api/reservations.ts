@@ -42,22 +42,12 @@ export const cancelReservation = (reservationId: string) =>
   });
 
 export const reservationsQueryOptions = {
-  availability: (
-    restaurantId: string,
-    query: ReservationAvailabilityQueryInput,
-    enabled = true,
-  ) => {
-    const normalizedQuery = {
-      from: query.from,
-      partySize: query.partySize,
-    };
-
-    return queryOptions({
-      queryKey: queryKeys.restaurants.reservationAvailability(restaurantId, normalizedQuery),
-      queryFn: () => getRestaurantReservationAvailability(restaurantId, normalizedQuery),
+  availability: (restaurantId: string, query: ReservationAvailabilityQueryInput, enabled = true) =>
+    queryOptions({
+      queryKey: queryKeys.restaurants.reservationAvailability(restaurantId, query),
+      queryFn: () => getRestaurantReservationAvailability(restaurantId, query),
       enabled: Boolean(restaurantId) && enabled,
-    });
-  },
+    }),
   restaurantReservations: (restaurantId: string) =>
     queryOptions({
       queryKey: queryKeys.restaurants.reservations(restaurantId),

@@ -6,7 +6,6 @@ import {
   SubscribeMessage,
   WebSocketGateway,
   WebSocketServer,
-  WsException,
 } from '@nestjs/websockets';
 import { UsePipes, ValidationPipe } from '@nestjs/common';
 import type { Server, Socket } from 'socket.io';
@@ -26,6 +25,21 @@ import {
 
 interface KioskSocketData {
   session?: UserSession;
+}
+
+interface JoinKioskRoomAck {
+  joined: boolean;
+  restaurantId?: string;
+  error?: string;
+  code?: string;
+}
+
+interface CompleteOrderAck {
+  success: boolean;
+  orderId?: string;
+  status?: 'completed';
+  error?: string;
+  code?: string;
 }
 
 @WebSocketGateway({
@@ -70,11 +84,15 @@ export class KioskGateway implements OnGatewayConnection, OnGatewayDisconnect {
   async joinRestaurantRoom(
     @ConnectedSocket() client: Socket,
     @MessageBody() payload: JoinKioskRoomDto,
-  ) {
-    const session = (client.data as KioskSocketData).session;
+  ): Promise<JoinKioskRoomAck> {
+    const session = await this.getSocketSession(client);
 
     if (!session?.user?.id) {
-      throw new WsException('Authentication is required');
+      return {
+        joined: false,
+        error: 'Authentication is required',
+        code: 'UNAUTHORIZED',
+      };
     }
 
     const hasAccess = await this.rbacService.hasPermissions({
@@ -84,10 +102,22 @@ export class KioskGateway implements OnGatewayConnection, OnGatewayDisconnect {
     });
 
     if (!hasAccess) {
-      throw new WsException('You do not have access to this restaurant kiosk');
+      return {
+        joined: false,
+        error: 'You do not have access to this restaurant kiosk',
+        code: 'FORBIDDEN',
+      };
     }
 
-    await client.join(this.roomName(payload.restaurantId));
+    try {
+      await client.join(this.roomName(payload.restaurantId));
+    } catch {
+      return {
+        joined: false,
+        error: 'Failed to join kiosk room',
+        code: 'JOIN_FAILED',
+      };
+    }
 
     return {
       joined: true,
@@ -103,11 +133,18 @@ export class KioskGateway implements OnGatewayConnection, OnGatewayDisconnect {
       forbidNonWhitelisted: true,
     }),
   )
-  async completeOrder(@ConnectedSocket() client: Socket, @MessageBody() payload: CompleteOrderDto) {
-    const session = (client.data as KioskSocketData).session;
+  async completeOrder(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() payload: CompleteOrderDto,
+  ): Promise<CompleteOrderAck> {
+    const session = await this.getSocketSession(client);
 
     if (!session?.user?.id) {
-      throw new WsException('Authentication is required');
+      return {
+        success: false,
+        error: 'Authentication is required',
+        code: 'UNAUTHORIZED',
+      };
     }
 
     try {
@@ -120,14 +157,14 @@ export class KioskGateway implements OnGatewayConnection, OnGatewayDisconnect {
       return {
         success: true,
         orderId: order.id,
-        status: order.status,
+        status: 'completed',
       };
     } catch (error: unknown) {
-      if (error instanceof Error) {
-        throw new WsException(error.message);
-      }
-
-      throw new WsException('Failed to complete order');
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to complete order',
+        code: 'COMPLETE_FAILED',
+      };
     }
   }
 
@@ -160,6 +197,21 @@ export class KioskGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   private roomName(restaurantId: string) {
     return `restaurant:${restaurantId}`;
+  }
+
+  private async getSocketSession(client: Socket): Promise<UserSession | null> {
+    const existingSession = (client.data as KioskSocketData).session;
+    if (existingSession?.user?.id) {
+      return existingSession;
+    }
+
+    const resolvedSession = await this.resolveSession(client);
+    if (resolvedSession?.user?.id) {
+      (client.data as KioskSocketData).session = resolvedSession;
+      return resolvedSession;
+    }
+
+    return null;
   }
 
   private async resolveSession(client: Socket): Promise<UserSession | null> {

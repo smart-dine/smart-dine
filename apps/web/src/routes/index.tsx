@@ -1,4 +1,5 @@
 import { restaurantsQueryOptions } from '#/lib/api/restaurants';
+import { staffQueryOptions } from '#/lib/api/staff';
 import { authClient } from '#/lib/auth-client';
 import { getTodayOpeningHoursLabel } from '#/lib/opening-hours';
 import { Badge } from '@smartdine/ui/components/badge';
@@ -22,6 +23,16 @@ const PAGE_SIZE = 9;
 
 function App() {
   const { data: session } = authClient.useSession();
+  const userRole = session?.user.role;
+  const isAuthenticated = Boolean(session?.user);
+
+  const membershipsQuery = useQuery({
+    ...staffQueryOptions.myRestaurants(),
+    enabled: isAuthenticated,
+  });
+
+  const canAccessWorkspace =
+    userRole === 'admin' || ((membershipsQuery.data?.length ?? 0) > 0 && isAuthenticated);
 
   const [searchInput, setSearchInput] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
@@ -64,21 +75,21 @@ function App() {
                 <a href='#restaurants'>Browse restaurants</a>
               </Button>
 
-              {session?.user ? (
-                <Button
-                  asChild
-                  variant='outline'
-                >
-                  <Link to='/workspace'>Open your workspace</Link>
-                </Button>
-              ) : (
+              {!session?.user ? (
                 <Button
                   asChild
                   variant='outline'
                 >
                   <Link to='/sign-in'>Sign in to reserve</Link>
                 </Button>
-              )}
+              ) : canAccessWorkspace ? (
+                <Button
+                  asChild
+                  variant='outline'
+                >
+                  <Link to='/workspace'>Open your workspace</Link>
+                </Button>
+              ) : null}
             </div>
           </div>
 

@@ -5,7 +5,11 @@ import {
   updateMenuItem,
   uploadMenuItemImage,
 } from '#/lib/api/restaurants';
-import type { RestaurantMenuItem } from '#/lib/api/contracts';
+import type {
+  CreateMenuItemInput,
+  RestaurantMenuItem,
+  UpdateMenuItemInput,
+} from '#/lib/api/contracts';
 import { getApiErrorMessage } from '#/lib/api/http';
 import { formatMoney } from '#/lib/formatters';
 import { Badge } from '@smartdine/ui/components/badge';
@@ -83,7 +87,7 @@ function RestaurantMenuPage() {
   };
 
   const createMutation = useMutation({
-    mutationFn: createMenuItem,
+    mutationFn: (input: CreateMenuItemInput) => createMenuItem(restaurantId, input),
     onSuccess: async () => {
       setCreateForm(createDefaultFormState());
       setPageError(null);
@@ -95,7 +99,8 @@ function RestaurantMenuPage() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: updateMenuItem,
+    mutationFn: ({ menuItemId, input }: { menuItemId: string; input: UpdateMenuItemInput }) =>
+      updateMenuItem(restaurantId, menuItemId, input),
     onSuccess: async () => {
       setEditingItem(null);
       setPageError(null);
@@ -107,7 +112,7 @@ function RestaurantMenuPage() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: deleteMenuItem,
+    mutationFn: (menuItemId: string) => deleteMenuItem(restaurantId, menuItemId),
     onSuccess: async () => {
       setPageError(null);
       await invalidateMenu();
@@ -148,13 +153,10 @@ function RestaurantMenuPage() {
               event.preventDefault();
 
               createMutation.mutate({
-                restaurantId,
-                input: {
-                  name: createForm.name,
-                  description: createForm.description || undefined,
-                  price: toMinorUnits(createForm.price),
-                  isAvailable: createForm.isAvailable,
-                },
+                name: createForm.name,
+                description: createForm.description || undefined,
+                price: toMinorUnits(createForm.price),
+                isAvailable: createForm.isAvailable,
               });
             }}
           >
@@ -311,7 +313,6 @@ function RestaurantMenuPage() {
                                 event.preventDefault();
 
                                 updateMutation.mutate({
-                                  restaurantId,
                                   menuItemId: item.id,
                                   input: {
                                     name: editForm.name,
@@ -421,10 +422,7 @@ function RestaurantMenuPage() {
                               `Delete ${item.name}? This action cannot be undone.`,
                             );
                             if (shouldDelete) {
-                              deleteMutation.mutate({
-                                restaurantId,
-                                menuItemId: item.id,
-                              });
+                              deleteMutation.mutate(item.id);
                             }
                           }}
                         >

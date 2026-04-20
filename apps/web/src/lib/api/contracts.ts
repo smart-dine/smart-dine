@@ -190,7 +190,7 @@ export interface ReplaceFloorPlanInput {
 }
 
 export interface UpsertStaffRoleInput {
-  userId: string;
+  email: string;
   role: StaffRole;
 }
 

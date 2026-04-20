@@ -26,6 +26,7 @@ import { Route as RestaurantsRestaurantIdAdminIndexRouteImport } from './routes/
 import { Route as RestaurantsRestaurantIdAdminStaffRouteImport } from './routes/restaurants.$restaurantId.admin.staff'
 import { Route as RestaurantsRestaurantIdAdminReservationsRouteImport } from './routes/restaurants.$restaurantId.admin.reservations'
 import { Route as RestaurantsRestaurantIdAdminOrdersRouteImport } from './routes/restaurants.$restaurantId.admin.orders'
+import { Route as RestaurantsRestaurantIdAdminOpeningHoursRouteImport } from './routes/restaurants.$restaurantId.admin.opening-hours'
 import { Route as RestaurantsRestaurantIdAdminMenuRouteImport } from './routes/restaurants.$restaurantId.admin.menu'
 import { Route as RestaurantsRestaurantIdAdminFloorPlanRouteImport } from './routes/restaurants.$restaurantId.admin.floor-plan'
 
@@ -123,6 +124,12 @@ const RestaurantsRestaurantIdAdminOrdersRoute =
     path: '/orders',
     getParentRoute: () => RestaurantsRestaurantIdAdminRoute,
   } as any)
+const RestaurantsRestaurantIdAdminOpeningHoursRoute =
+  RestaurantsRestaurantIdAdminOpeningHoursRouteImport.update({
+    id: '/opening-hours',
+    path: '/opening-hours',
+    getParentRoute: () => RestaurantsRestaurantIdAdminRoute,
+  } as any)
 const RestaurantsRestaurantIdAdminMenuRoute =
   RestaurantsRestaurantIdAdminMenuRouteImport.update({
     id: '/menu',
@@ -149,6 +156,7 @@ export interface FileRoutesByFullPath {
   '/restaurants/$restaurantId/': typeof RestaurantsRestaurantIdIndexRoute
   '/restaurants/$restaurantId/admin/floor-plan': typeof RestaurantsRestaurantIdAdminFloorPlanRoute
   '/restaurants/$restaurantId/admin/menu': typeof RestaurantsRestaurantIdAdminMenuRoute
+  '/restaurants/$restaurantId/admin/opening-hours': typeof RestaurantsRestaurantIdAdminOpeningHoursRoute
   '/restaurants/$restaurantId/admin/orders': typeof RestaurantsRestaurantIdAdminOrdersRoute
   '/restaurants/$restaurantId/admin/reservations': typeof RestaurantsRestaurantIdAdminReservationsRoute
   '/restaurants/$restaurantId/admin/staff': typeof RestaurantsRestaurantIdAdminStaffRoute
@@ -168,6 +176,7 @@ export interface FileRoutesByTo {
   '/restaurants/$restaurantId': typeof RestaurantsRestaurantIdIndexRoute
   '/restaurants/$restaurantId/admin/floor-plan': typeof RestaurantsRestaurantIdAdminFloorPlanRoute
   '/restaurants/$restaurantId/admin/menu': typeof RestaurantsRestaurantIdAdminMenuRoute
+  '/restaurants/$restaurantId/admin/opening-hours': typeof RestaurantsRestaurantIdAdminOpeningHoursRoute
   '/restaurants/$restaurantId/admin/orders': typeof RestaurantsRestaurantIdAdminOrdersRoute
   '/restaurants/$restaurantId/admin/reservations': typeof RestaurantsRestaurantIdAdminReservationsRoute
   '/restaurants/$restaurantId/admin/staff': typeof RestaurantsRestaurantIdAdminStaffRoute
@@ -190,6 +199,7 @@ export interface FileRoutesById {
   '/restaurants/$restaurantId/': typeof RestaurantsRestaurantIdIndexRoute
   '/restaurants/$restaurantId/admin/floor-plan': typeof RestaurantsRestaurantIdAdminFloorPlanRoute
   '/restaurants/$restaurantId/admin/menu': typeof RestaurantsRestaurantIdAdminMenuRoute
+  '/restaurants/$restaurantId/admin/opening-hours': typeof RestaurantsRestaurantIdAdminOpeningHoursRoute
   '/restaurants/$restaurantId/admin/orders': typeof RestaurantsRestaurantIdAdminOrdersRoute
   '/restaurants/$restaurantId/admin/reservations': typeof RestaurantsRestaurantIdAdminReservationsRoute
   '/restaurants/$restaurantId/admin/staff': typeof RestaurantsRestaurantIdAdminStaffRoute
@@ -213,6 +223,7 @@ export interface FileRouteTypes {
     | '/restaurants/$restaurantId/'
     | '/restaurants/$restaurantId/admin/floor-plan'
     | '/restaurants/$restaurantId/admin/menu'
+    | '/restaurants/$restaurantId/admin/opening-hours'
     | '/restaurants/$restaurantId/admin/orders'
     | '/restaurants/$restaurantId/admin/reservations'
     | '/restaurants/$restaurantId/admin/staff'
@@ -232,6 +243,7 @@ export interface FileRouteTypes {
     | '/restaurants/$restaurantId'
     | '/restaurants/$restaurantId/admin/floor-plan'
     | '/restaurants/$restaurantId/admin/menu'
+    | '/restaurants/$restaurantId/admin/opening-hours'
     | '/restaurants/$restaurantId/admin/orders'
     | '/restaurants/$restaurantId/admin/reservations'
     | '/restaurants/$restaurantId/admin/staff'
@@ -253,6 +265,7 @@ export interface FileRouteTypes {
     | '/restaurants/$restaurantId/'
     | '/restaurants/$restaurantId/admin/floor-plan'
     | '/restaurants/$restaurantId/admin/menu'
+    | '/restaurants/$restaurantId/admin/opening-hours'
     | '/restaurants/$restaurantId/admin/orders'
     | '/restaurants/$restaurantId/admin/reservations'
     | '/restaurants/$restaurantId/admin/staff'
@@ -396,6 +409,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RestaurantsRestaurantIdAdminOrdersRouteImport
       parentRoute: typeof RestaurantsRestaurantIdAdminRoute
     }
+    '/restaurants/$restaurantId/admin/opening-hours': {
+      id: '/restaurants/$restaurantId/admin/opening-hours'
+      path: '/opening-hours'
+      fullPath: '/restaurants/$restaurantId/admin/opening-hours'
+      preLoaderRoute: typeof RestaurantsRestaurantIdAdminOpeningHoursRouteImport
+      parentRoute: typeof RestaurantsRestaurantIdAdminRoute
+    }
     '/restaurants/$restaurantId/admin/menu': {
       id: '/restaurants/$restaurantId/admin/menu'
       path: '/menu'
@@ -430,6 +450,7 @@ const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 interface RestaurantsRestaurantIdAdminRouteChildren {
   RestaurantsRestaurantIdAdminFloorPlanRoute: typeof RestaurantsRestaurantIdAdminFloorPlanRoute
   RestaurantsRestaurantIdAdminMenuRoute: typeof RestaurantsRestaurantIdAdminMenuRoute
+  RestaurantsRestaurantIdAdminOpeningHoursRoute: typeof RestaurantsRestaurantIdAdminOpeningHoursRoute
   RestaurantsRestaurantIdAdminOrdersRoute: typeof RestaurantsRestaurantIdAdminOrdersRoute
   RestaurantsRestaurantIdAdminReservationsRoute: typeof RestaurantsRestaurantIdAdminReservationsRoute
   RestaurantsRestaurantIdAdminStaffRoute: typeof RestaurantsRestaurantIdAdminStaffRoute
@@ -442,6 +463,8 @@ const RestaurantsRestaurantIdAdminRouteChildren: RestaurantsRestaurantIdAdminRou
       RestaurantsRestaurantIdAdminFloorPlanRoute,
     RestaurantsRestaurantIdAdminMenuRoute:
       RestaurantsRestaurantIdAdminMenuRoute,
+    RestaurantsRestaurantIdAdminOpeningHoursRoute:
+      RestaurantsRestaurantIdAdminOpeningHoursRoute,
     RestaurantsRestaurantIdAdminOrdersRoute:
       RestaurantsRestaurantIdAdminOrdersRoute,
     RestaurantsRestaurantIdAdminReservationsRoute:

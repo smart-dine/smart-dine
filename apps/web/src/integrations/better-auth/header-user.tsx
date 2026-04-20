@@ -1,6 +1,8 @@
+import { staffQueryOptions } from '#/lib/api/staff';
 import { authClient } from '#/lib/auth-client';
+import { useQuery } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
-import { LogOut, User } from 'lucide-react';
+import { LayoutDashboard, LogOut, Shield, User } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@smartdine/ui/components/avatar';
 import { Button } from '@smartdine/ui/components/button';
 import {
@@ -15,6 +17,17 @@ import { Skeleton } from '@smartdine/ui/components/skeleton';
 
 export default function BetterAuthHeader() {
   const { data: session, isPending } = authClient.useSession();
+  const userRole = session?.user.role;
+  const isAuthenticated = Boolean(session?.user);
+
+  const membershipsQuery = useQuery({
+    ...staffQueryOptions.myRestaurants(),
+    enabled: isAuthenticated,
+  });
+
+  const canAccessWorkspace =
+    userRole === 'admin' || ((membershipsQuery.data?.length ?? 0) > 0 && isAuthenticated);
+  const canAccessAdmin = userRole === 'admin';
 
   if (isPending) {
     return <Skeleton className='size-8 rounded-full' />;
@@ -58,6 +71,23 @@ export default function BetterAuthHeader() {
             <span className='text-muted-foreground text-xs font-normal'>{session.user.email}</span>
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
+          {canAccessWorkspace && (
+            <DropdownMenuItem asChild>
+              <Link to='/workspace'>
+                <LayoutDashboard className='mr-2 size-4' />
+                Workspace
+              </Link>
+            </DropdownMenuItem>
+          )}
+          {canAccessAdmin && (
+            <DropdownMenuItem asChild>
+              <Link to='/admin'>
+                <Shield className='mr-2 size-4' />
+                Admin
+              </Link>
+            </DropdownMenuItem>
+          )}
+          {(canAccessWorkspace || canAccessAdmin) && <DropdownMenuSeparator />}
           <DropdownMenuItem
             className='text-destructive focus:text-destructive'
             onClick={() => void authClient.signOut()}

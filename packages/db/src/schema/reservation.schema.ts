@@ -18,6 +18,7 @@ export const reservations = pgTable('reservations', {
     .notNull()
     .references(() => users.id, { onDelete: 'restrict' }),
   reservationTime: timestamp('reservation_time').notNull(),
+  reservationEndTime: timestamp('reservation_end_time').notNull(),
   partySize: integer('party_size').notNull(),
   status: reservationStatusEnum('status').default('pending').notNull(),
 });

@@ -14,24 +14,72 @@ import {
   CardHeader,
   CardTitle,
 } from '@smartdine/ui/components/card';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@smartdine/ui/components/select';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, Navigate, createFileRoute } from '@tanstack/react-router';
 import { Bell, Monitor, RefreshCw, SquareMenu, Wifi, WifiOff } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
-const orderStatuses: OrderStatus[] = ['placed', 'preparing', 'ready', 'completed'];
+const orderStatuses: OrderStatus[] = ['placed', 'completed'];
+type KioskStatusFilter = OrderStatus;
+
+const statusFilters: Array<{ value: KioskStatusFilter; label: string }> = [
+  { value: 'placed', label: 'Placed' },
+  { value: 'completed', label: 'Completed' },
+];
+
+const PLACED_WARNING_MINUTES = 8;
+const PLACED_URGENT_MINUTES = 15;
+
+const placedFreshCardTone =
+  'border-emerald-300/60 bg-emerald-50/55 dark:border-emerald-500/35 dark:bg-emerald-950/20';
+const placedWarningCardTone =
+  'border-amber-300/65 bg-amber-50/65 dark:border-amber-500/45 dark:bg-amber-950/30';
+const placedUrgentCardTone =
+  'border-rose-400/75 bg-rose-50/75 dark:border-rose-500/55 dark:bg-rose-950/32';
+const completedCardTone =
+  'border-zinc-300/80 bg-zinc-100/70 dark:border-zinc-700/70 dark:bg-zinc-900/55';
+
 const defaultStatusTotals: Record<OrderStatus, number> = {
   placed: 0,
-  preparing: 0,
-  ready: 0,
   completed: 0,
+};
+
+const getDateTimestamp = (value: string | null | undefined) => {
+  if (!value) {
+    return 0;
+  }
+
+  const timestamp = new Date(value).getTime();
+  return Number.isNaN(timestamp) ? 0 : timestamp;
+};
+
+const getPlacedMinutes = (createdAt: string, nowMs: number) => {
+  const createdAtMs = new Date(createdAt).getTime();
+  if (Number.isNaN(createdAtMs)) {
+    return 0;
+  }
+
+  return Math.max(0, Math.floor((nowMs - createdAtMs) / 60_000));
+};
+
+const getPlacedCardTone = (placedMinutes: number) => {
+  if (placedMinutes >= PLACED_URGENT_MINUTES) {
+    return placedUrgentCardTone;
+  }
+
+  if (placedMinutes >= PLACED_WARNING_MINUTES) {
+    return placedWarningCardTone;
+  }
+
+  return placedFreshCardTone;
+};
+
+const getOrderCardTone = (order: RestaurantOrder, nowMs: number) => {
+  if (order.status === 'placed') {
+    return getPlacedCardTone(getPlacedMinutes(order.createdAt, nowMs));
+  }
+
+  return completedCardTone;
 };
 
 export const Route = createFileRoute('/restaurants/$restaurantId/kiosk/')({
@@ -52,11 +100,12 @@ function KioskPage() {
   const [connectionState, setConnectionState] = useState<KioskConnectionState>('connecting');
   const [joinError, setJoinError] = useState<string | null>(null);
   const [pageError, setPageError] = useState<string | null>(null);
-  const [statusFilter, setStatusFilter] = useState<'all' | OrderStatus>('all');
+  const [statusFilter, setStatusFilter] = useState<KioskStatusFilter>('placed');
   const [ordersById, setOrdersById] = useState<Partial<Record<string, RestaurantOrder>>>({});
   const [highlightedOrderIds, setHighlightedOrderIds] = useState<Record<string, boolean>>({});
   const [soundEnabled, setSoundEnabled] = useState(false);
   const [completingOrderId, setCompletingOrderId] = useState<string | null>(null);
+  const [nowMs, setNowMs] = useState(() => Date.now());
 
   useEffect(() => {
     const storedPreference = window.localStorage.getItem('smartdine:kiosk-sound-enabled');
@@ -66,19 +115,34 @@ function KioskPage() {
   }, []);
 
   useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      setNowMs(Date.now());
+    }, 30_000);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (audioContextRef.current) {
+        void audioContextRef.current.close();
+        audioContextRef.current = null;
+      }
+    };
+  }, []);
+
+  useEffect(() => {
     if (!ordersQuery.data) {
       return;
     }
 
-    setOrdersById((current) => {
-      const next = { ...current };
-
-      for (const order of ordersQuery.data) {
-        next[order.id] = order;
-      }
-
-      return next;
-    });
+    setOrdersById(
+      Object.fromEntries(ordersQuery.data.map((order) => [order.id, order])) as Partial<
+        Record<string, RestaurantOrder>
+      >,
+    );
   }, [ordersQuery.data]);
 
   const playNewOrderTone = () => {
@@ -231,18 +295,33 @@ function KioskPage() {
   });
 
   const orders = useMemo(
-    () =>
-      Object.values(ordersById).sort(
-        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-      ),
+    () => Object.values(ordersById).filter((order): order is RestaurantOrder => Boolean(order)),
     [ordersById],
   );
 
-  const filteredOrders = useMemo(
+  const placedOrders = useMemo(
     () =>
-      statusFilter === 'all' ? orders : orders.filter((order) => order.status === statusFilter),
-    [orders, statusFilter],
+      [...orders]
+        .filter((order) => order.status === 'placed')
+        .sort(
+          (left, right) => getDateTimestamp(left.createdAt) - getDateTimestamp(right.createdAt),
+        ),
+    [orders],
   );
+
+  const completedOrders = useMemo(
+    () =>
+      [...orders]
+        .filter((order) => order.status === 'completed')
+        .sort(
+          (left, right) =>
+            getDateTimestamp(right.completedAt ?? right.createdAt) -
+            getDateTimestamp(left.completedAt ?? left.createdAt),
+        ),
+    [orders],
+  );
+
+  const filteredOrders = statusFilter === 'placed' ? placedOrders : completedOrders;
 
   const statusTotals = useMemo(
     () =>
@@ -288,28 +367,15 @@ function KioskPage() {
   }
 
   return (
-    <main className='container mx-auto flex flex-col gap-4 px-4 py-8'>
+    <main className='container mx-auto flex flex-col gap-4 px-4 py-6'>
       <Card>
-        <CardHeader className='flex flex-col gap-3 md:flex-row md:items-end md:justify-between'>
-          <div>
-            <CardTitle className='inline-flex items-center gap-2 text-2xl'>
+        <CardHeader className='gap-4'>
+          <div className='flex flex-wrap items-center justify-between gap-3'>
+            <CardTitle className='inline-flex items-center gap-2 text-3xl'>
               <Monitor className='size-5' />
               Kitchen Kiosk
             </CardTitle>
-            <CardDescription>
-              Live order queue for staff operations.{' '}
-              <Link
-                to='/restaurants/$restaurantId/cashier'
-                params={{ restaurantId }}
-                className='text-primary underline-offset-2 hover:underline'
-              >
-                Open cashier
-              </Link>
-              .
-            </CardDescription>
-          </div>
 
-          <div className='flex flex-wrap items-center gap-2'>
             <Badge
               variant={
                 connectionState === 'connected'
@@ -318,18 +384,56 @@ function KioskPage() {
                     ? 'destructive'
                     : 'secondary'
               }
+              className='inline-flex min-h-11 items-center gap-2 px-3 text-sm'
             >
               {connectionState === 'connected' ? (
-                <Wifi className='size-3' />
+                <Wifi className='size-4' />
               ) : (
-                <WifiOff className='size-3' />
+                <WifiOff className='size-4' />
               )}
               {connectionState}
             </Badge>
+          </div>
+
+          <CardDescription className='text-base'>
+            Large touch-first kitchen queue. Keep this screen open for live updates.{' '}
+            <Link
+              to='/restaurants/$restaurantId/cashier'
+              params={{ restaurantId }}
+              className='text-primary underline-offset-2 hover:underline'
+            >
+              Open cashier
+            </Link>
+            .
+          </CardDescription>
+
+          <div className='grid gap-2 sm:grid-cols-2 xl:grid-cols-4'>
+            {orderStatuses.map((status) => (
+              <div
+                key={status}
+                className='bg-background rounded-lg border px-4 py-3'
+              >
+                <p className='text-muted-foreground text-xs uppercase'>{status}</p>
+                <p className='text-2xl font-semibold'>{statusTotals[status]}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className='grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6'>
+            {statusFilters.map((filter) => (
+              <Button
+                key={filter.value}
+                variant={statusFilter === filter.value ? 'default' : 'outline'}
+                className='h-12 text-base font-semibold'
+                onClick={() => setStatusFilter(filter.value)}
+              >
+                {filter.label}
+              </Button>
+            ))}
 
             <Button
               variant={soundEnabled ? 'default' : 'outline'}
-              size='sm'
+              className='h-12 text-base font-semibold'
               onClick={() => {
                 const next = !soundEnabled;
                 soundEnabledRef.current = next;
@@ -337,98 +441,78 @@ function KioskPage() {
                 window.localStorage.setItem('smartdine:kiosk-sound-enabled', String(next));
               }}
             >
-              <Bell className='mr-1 size-4' />
+              <Bell className='mr-2 size-4' />
               {soundEnabled ? 'Sound on' : 'Enable sound'}
             </Button>
 
             <Button
-              size='sm'
+              className='h-12 text-base font-semibold'
               variant='outline'
               onClick={() => void ordersQuery.refetch()}
             >
-              <RefreshCw className='mr-1 size-4' />
-              Refresh
+              <RefreshCw className='mr-2 size-4' />
+              Refresh queue
             </Button>
           </div>
-        </CardHeader>
 
-        <CardContent className='space-y-3'>
-          <div className='grid gap-2 sm:grid-cols-2 lg:grid-cols-4'>
-            {orderStatuses.map((status) => (
-              <div
-                key={status}
-                className='bg-background rounded-lg border px-3 py-2'
-              >
-                <p className='text-muted-foreground text-xs uppercase'>{status}</p>
-                <p className='text-lg font-semibold'>{statusTotals[status]}</p>
-              </div>
-            ))}
-          </div>
-
-          <div className='flex flex-wrap items-center gap-2'>
-            <Select
-              value={statusFilter}
-              onValueChange={(value) => setStatusFilter(value as 'all' | OrderStatus)}
-            >
-              <SelectTrigger className='w-52'>
-                <SelectValue placeholder='Filter by status' />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value='all'>All statuses</SelectItem>
-                {orderStatuses.map((status) => (
-                  <SelectItem
-                    key={status}
-                    value={status}
-                  >
-                    {status}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
+          <div className='space-y-1'>
             {ordersQuery.isFetching && (
-              <p className='text-muted-foreground text-xs'>Syncing latest orders...</p>
+              <p className='text-muted-foreground text-sm'>Syncing latest orders...</p>
             )}
-          </div>
 
-          {joinError && <p className='text-destructive text-sm'>{joinError}</p>}
-          {pageError && <p className='text-destructive text-sm'>{pageError}</p>}
-        </CardContent>
+            {joinError && <p className='text-destructive text-sm'>{joinError}</p>}
+            {pageError && <p className='text-destructive text-sm'>{pageError}</p>}
+          </div>
+        </CardHeader>
       </Card>
 
       {ordersQuery.isPending ? (
         <Card>
-          <CardContent className='py-8'>
-            <p className='text-muted-foreground text-sm'>Loading live queue...</p>
+          <CardContent className='py-10'>
+            <p className='text-muted-foreground text-base'>Loading kitchen queue...</p>
           </CardContent>
         </Card>
       ) : filteredOrders.length > 0 ? (
-        <div className='grid gap-3 lg:grid-cols-2'>
+        <section className='grid gap-4 xl:grid-cols-2'>
           {filteredOrders.map((order) => (
             <Card
               key={order.id}
-              className={highlightedOrderIds[order.id] ? 'ring-primary/50 ring-2' : ''}
+              className={`${getOrderCardTone(order, nowMs)} ${highlightedOrderIds[order.id] ? 'ring-primary ring-2 ring-offset-2' : ''}`}
             >
-              <CardHeader className='flex flex-row items-center justify-between space-y-0'>
-                <div>
-                  <CardTitle className='text-base'>Table {order.table.tableNumber}</CardTitle>
-                  <CardDescription>
-                    {formatDateTime(order.createdAt)} • {formatMoney(order.totalAmount)}
-                  </CardDescription>
+              <CardHeader className='space-y-3'>
+                <div className='flex flex-wrap items-start justify-between gap-3'>
+                  <div>
+                    <CardTitle className='text-2xl'>Table {order.table.tableNumber}</CardTitle>
+                    <CardDescription className='text-base'>
+                      {formatDateTime(order.createdAt)} • {formatMoney(order.totalAmount)}
+                    </CardDescription>
+                    {order.status === 'placed' && (
+                      <Badge
+                        variant='outline'
+                        className='mt-2'
+                      >
+                        Placed {getPlacedMinutes(order.createdAt, nowMs)}m ago
+                      </Badge>
+                    )}
+                  </div>
+
+                  <Badge
+                    variant={order.status === 'completed' ? 'default' : 'secondary'}
+                    className='px-3 py-1 text-sm uppercase'
+                  >
+                    {order.status}
+                  </Badge>
                 </div>
-                <Badge variant={order.status === 'completed' ? 'default' : 'secondary'}>
-                  {order.status}
-                </Badge>
               </CardHeader>
 
-              <CardContent className='space-y-3'>
-                <ul className='space-y-1'>
+              <CardContent className='space-y-4'>
+                <ul className='space-y-2'>
                   {order.orderItems.map((item) => (
                     <li
                       key={item.id}
-                      className='text-sm'
+                      className='bg-background/80 rounded-md border px-3 py-2 text-base'
                     >
-                      <span className='font-medium'>x{item.quantity}</span> {item.menuItem.name}
+                      <span className='font-semibold'>x{item.quantity}</span> {item.menuItem.name}
                       {item.specialInstructions && (
                         <span className='text-muted-foreground'> ({item.specialInstructions})</span>
                       )}
@@ -436,31 +520,34 @@ function KioskPage() {
                   ))}
                 </ul>
 
-                <div className='flex justify-end'>
-                  <Button
-                    size='sm'
-                    disabled={
-                      order.status === 'completed' ||
-                      completeOrderMutation.isPending ||
-                      connectionState !== 'connected'
-                    }
-                    onClick={() => completeOrderMutation.mutate(order.id)}
-                  >
-                    {completeOrderMutation.isPending && completingOrderId === order.id
-                      ? 'Completing...'
-                      : order.status === 'completed'
-                        ? 'Completed'
-                        : 'Complete order'}
-                  </Button>
-                </div>
+                <Button
+                  size='lg'
+                  className='h-14 w-full text-lg font-semibold'
+                  disabled={
+                    order.status === 'completed' ||
+                    completeOrderMutation.isPending ||
+                    connectionState !== 'connected'
+                  }
+                  onClick={() => completeOrderMutation.mutate(order.id)}
+                >
+                  {completeOrderMutation.isPending && completingOrderId === order.id
+                    ? 'Completing...'
+                    : order.status === 'completed'
+                      ? 'Completed'
+                      : 'Complete order'}
+                </Button>
               </CardContent>
             </Card>
           ))}
-        </div>
+        </section>
       ) : (
         <Card>
-          <CardContent className='py-8'>
-            <p className='text-muted-foreground text-sm'>No orders in this queue yet.</p>
+          <CardContent className='py-10'>
+            <p className='text-muted-foreground text-base'>
+              {statusFilter === 'placed'
+                ? 'No placed orders in the kitchen queue.'
+                : 'No completed orders yet.'}
+            </p>
           </CardContent>
         </Card>
       )}
@@ -468,7 +555,7 @@ function KioskPage() {
       <Card className='bg-card/60'>
         <CardContent className='flex flex-wrap items-center justify-between gap-3 py-4'>
           <p className='text-muted-foreground text-sm'>
-            Tip: keep this screen open during service for realtime updates.
+            Placed orders shift from green to amber to red as wait time increases.
           </p>
           <Button
             asChild
