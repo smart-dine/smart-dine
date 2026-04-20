@@ -85,7 +85,7 @@ export class KioskGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() client: Socket,
     @MessageBody() payload: JoinKioskRoomDto,
   ): Promise<JoinKioskRoomAck> {
-    const session = (client.data as KioskSocketData).session;
+    const session = await this.getSocketSession(client);
 
     if (!session?.user?.id) {
       return {
@@ -137,7 +137,7 @@ export class KioskGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() client: Socket,
     @MessageBody() payload: CompleteOrderDto,
   ): Promise<CompleteOrderAck> {
-    const session = (client.data as KioskSocketData).session;
+    const session = await this.getSocketSession(client);
 
     if (!session?.user?.id) {
       return {
@@ -197,6 +197,21 @@ export class KioskGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   private roomName(restaurantId: string) {
     return `restaurant:${restaurantId}`;
+  }
+
+  private async getSocketSession(client: Socket): Promise<UserSession | null> {
+    const existingSession = (client.data as KioskSocketData).session;
+    if (existingSession?.user?.id) {
+      return existingSession;
+    }
+
+    const resolvedSession = await this.resolveSession(client);
+    if (resolvedSession?.user?.id) {
+      (client.data as KioskSocketData).session = resolvedSession;
+      return resolvedSession;
+    }
+
+    return null;
   }
 
   private async resolveSession(client: Socket): Promise<UserSession | null> {
