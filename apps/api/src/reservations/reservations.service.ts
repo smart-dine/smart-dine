@@ -50,26 +50,12 @@ export class ReservationsService {
         and(
           eq(reservations.restaurantId, restaurantId),
           inArray(reservations.status, ['pending', 'confirmed']),
-          gte(
-            reservations.reservationTime,
-            this.addMinutes(requestedStart, -RESERVATION_SLOT_MINUTES),
-          ),
-          lt(reservations.reservationTime, this.addMinutes(requestedEnd, RESERVATION_SLOT_MINUTES)),
+          lt(reservations.reservationTime, requestedEnd),
+          gte(reservations.reservationEndTime, requestedStart),
         ),
     });
 
-    const blockedTableIds = new Set(
-      relevantReservations
-        .filter((reservation) =>
-          this.overlaps(
-            reservation.reservationTime,
-            this.addMinutes(reservation.reservationTime, RESERVATION_SLOT_MINUTES),
-            requestedStart,
-            requestedEnd,
-          ),
-        )
-        .map((reservation) => reservation.tableId),
-    );
+    const blockedTableIds = new Set(relevantReservations.map((reservation) => reservation.tableId));
 
     return {
       requestedFrom: requestedStart.toISOString(),
@@ -125,6 +111,7 @@ export class ReservationsService {
         tableId: body.tableId,
         customerId: userId,
         reservationTime: requestedStart,
+        reservationEndTime: this.addMinutes(requestedStart, RESERVATION_SLOT_MINUTES),
         partySize: body.partySize,
       })
       .returning();
