@@ -19,36 +19,65 @@ import { Link, Navigate, createFileRoute } from '@tanstack/react-router';
 import { Bell, Monitor, RefreshCw, SquareMenu, Wifi, WifiOff } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
-const orderStatuses: OrderStatus[] = ['placed', 'preparing', 'ready', 'completed'];
-type KioskStatusFilter = 'all' | 'placed' | 'preparing' | 'ready';
+const orderStatuses: OrderStatus[] = ['placed', 'completed'];
+type KioskStatusFilter = 'all' | OrderStatus;
 
 const statusFilters: Array<{ value: KioskStatusFilter; label: string }> = [
-  { value: 'all', label: 'All Active' },
+  { value: 'all', label: 'All Orders' },
   { value: 'placed', label: 'Placed' },
-  { value: 'preparing', label: 'Preparing' },
-  { value: 'ready', label: 'Ready' },
+  { value: 'completed', label: 'Completed' },
 ];
 
 const ORDER_DISMISS_DELAY_MS = 5_000;
+const PLACED_WARNING_MINUTES = 8;
+const PLACED_URGENT_MINUTES = 15;
+
 const statusPriority: Record<OrderStatus, number> = {
-  ready: 0,
-  preparing: 1,
-  placed: 2,
-  completed: 3,
+  placed: 0,
+  completed: 1,
 };
 
-const statusCardTone: Record<OrderStatus, string> = {
-  placed: 'border-amber-300/60 bg-amber-50/60 dark:border-amber-500/40 dark:bg-amber-950/25',
-  preparing: 'border-sky-300/60 bg-sky-50/60 dark:border-sky-500/40 dark:bg-sky-950/25',
-  ready: 'border-emerald-400/70 bg-emerald-50/70 dark:border-emerald-500/45 dark:bg-emerald-950/28',
-  completed: 'border-zinc-300/80 bg-zinc-100/70 dark:border-zinc-700/70 dark:bg-zinc-900/55',
-};
+const placedFreshCardTone =
+  'border-emerald-300/60 bg-emerald-50/55 dark:border-emerald-500/35 dark:bg-emerald-950/20';
+const placedWarningCardTone =
+  'border-amber-300/65 bg-amber-50/65 dark:border-amber-500/45 dark:bg-amber-950/30';
+const placedUrgentCardTone =
+  'border-rose-400/75 bg-rose-50/75 dark:border-rose-500/55 dark:bg-rose-950/32';
+const completedCardTone =
+  'border-zinc-300/80 bg-zinc-100/70 dark:border-zinc-700/70 dark:bg-zinc-900/55';
 
 const defaultStatusTotals: Record<OrderStatus, number> = {
   placed: 0,
-  preparing: 0,
-  ready: 0,
   completed: 0,
+};
+
+const getPlacedMinutes = (createdAt: string, nowMs: number) => {
+  const createdAtMs = new Date(createdAt).getTime();
+  if (Number.isNaN(createdAtMs)) {
+    return 0;
+  }
+
+  return Math.max(0, Math.floor((nowMs - createdAtMs) / 60_000));
+};
+
+const getPlacedCardTone = (placedMinutes: number) => {
+  if (placedMinutes >= PLACED_URGENT_MINUTES) {
+    return placedUrgentCardTone;
+  }
+
+  if (placedMinutes >= PLACED_WARNING_MINUTES) {
+    return placedWarningCardTone;
+  }
+
+  return placedFreshCardTone;
+};
+
+const getOrderCardTone = (order: RestaurantOrder, nowMs: number) => {
+  if (order.status === 'placed') {
+    return getPlacedCardTone(getPlacedMinutes(order.createdAt, nowMs));
+  }
+
+  return completedCardTone;
 };
 
 export const Route = createFileRoute('/restaurants/$restaurantId/kiosk/')({
@@ -74,6 +103,7 @@ function KioskPage() {
   const [highlightedOrderIds, setHighlightedOrderIds] = useState<Record<string, boolean>>({});
   const [soundEnabled, setSoundEnabled] = useState(false);
   const [completingOrderId, setCompletingOrderId] = useState<string | null>(null);
+  const [nowMs, setNowMs] = useState(() => Date.now());
 
   const completedDismissTimersRef = useRef<Map<string, number>>(new Map());
   const dismissedCompletedOrderIdsRef = useRef<Set<string>>(new Set());
@@ -124,6 +154,16 @@ function KioskPage() {
     const isEnabled = storedPreference === 'true';
     soundEnabledRef.current = isEnabled;
     setSoundEnabled(isEnabled);
+  }, []);
+
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      setNowMs(Date.now());
+    }, 30_000);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
   }, []);
 
   useEffect(() => {
@@ -348,14 +388,16 @@ function KioskPage() {
 
   const orders = useMemo(
     () =>
-      Object.values(ordersById).sort((a, b) => {
-        const byStatus = statusPriority[a.status] - statusPriority[b.status];
-        if (byStatus !== 0) {
-          return byStatus;
-        }
+      Object.values(ordersById)
+        .filter((order): order is RestaurantOrder => Boolean(order))
+        .sort((a, b) => {
+          const byStatus = statusPriority[a.status] - statusPriority[b.status];
+          if (byStatus !== 0) {
+            return byStatus;
+          }
 
-        return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-      }),
+          return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+        }),
     [ordersById],
   );
 
@@ -519,7 +561,7 @@ function KioskPage() {
           {filteredOrders.map((order) => (
             <Card
               key={order.id}
-              className={`${statusCardTone[order.status]} ${highlightedOrderIds[order.id] ? 'ring-primary ring-2 ring-offset-2' : ''}`}
+              className={`${getOrderCardTone(order, nowMs)} ${highlightedOrderIds[order.id] ? 'ring-primary ring-2 ring-offset-2' : ''}`}
             >
               <CardHeader className='space-y-3'>
                 <div className='flex flex-wrap items-start justify-between gap-3'>
@@ -528,10 +570,18 @@ function KioskPage() {
                     <CardDescription className='text-base'>
                       {formatDateTime(order.createdAt)} • {formatMoney(order.totalAmount)}
                     </CardDescription>
+                    {order.status === 'placed' && (
+                      <Badge
+                        variant='outline'
+                        className='mt-2'
+                      >
+                        Placed {getPlacedMinutes(order.createdAt, nowMs)}m ago
+                      </Badge>
+                    )}
                   </div>
 
                   <Badge
-                    variant={order.status === 'ready' ? 'default' : 'secondary'}
+                    variant={order.status === 'completed' ? 'default' : 'secondary'}
                     className='px-3 py-1 text-sm uppercase'
                   >
                     {order.status}
@@ -587,7 +637,8 @@ function KioskPage() {
       <Card className='bg-card/60'>
         <CardContent className='flex flex-wrap items-center justify-between gap-3 py-4'>
           <p className='text-muted-foreground text-sm'>
-            Completed orders stay visible for 5 seconds, then leave the active board.
+            Placed orders shift from green to amber to red as wait time increases. Completed orders
+            stay visible for 5 seconds, then leave the active board.
           </p>
           <Button
             asChild
