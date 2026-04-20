@@ -14,6 +14,26 @@ import { CreateReservationDto } from './dto/create-reservation.dto';
 import type { UserSession } from '@thallesp/nestjs-better-auth';
 import type { ReservationStatus } from './lib/reservation-status';
 
+type DayKey = 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday';
+
+type OpeningHoursEntry = {
+  opens?: string | null;
+  closes?: string | null;
+  isClosed?: boolean | null;
+};
+
+type OpeningHoursRecord = Partial<Record<DayKey, OpeningHoursEntry>>;
+
+const dayKeyByJsDay: DayKey[] = [
+  'sunday',
+  'monday',
+  'tuesday',
+  'wednesday',
+  'thursday',
+  'friday',
+  'saturday',
+];
+
 @Injectable()
 export class ReservationsService {
   constructor(
@@ -22,12 +42,14 @@ export class ReservationsService {
   ) {}
 
   async getAvailability(restaurantId: string, query: ReservationAvailabilityDto) {
-    await this.assertRestaurantExists(restaurantId);
+    const restaurant = await this.getRestaurantOrThrow(restaurantId);
 
     const requestedStart = new Date(query.from);
     if (Number.isNaN(requestedStart.getTime())) {
       throw new BadRequestException('Invalid reservation date');
     }
+
+    this.assertWithinOpeningHours(restaurant.openingHours, requestedStart);
 
     const requestedEnd = this.addMinutes(requestedStart, RESERVATION_SLOT_MINUTES);
 
@@ -78,7 +100,8 @@ export class ReservationsService {
       throw new BadRequestException('Invalid reservation date');
     }
 
-    await this.assertRestaurantExists(restaurantId);
+    const restaurant = await this.getRestaurantOrThrow(restaurantId);
+    this.assertWithinOpeningHours(restaurant.openingHours, requestedStart);
 
     const table = await this.db.query.restaurantTables.findFirst({
       where: (tables) => and(eq(tables.id, body.tableId), eq(tables.restaurantId, restaurantId)),
@@ -120,7 +143,7 @@ export class ReservationsService {
   }
 
   async getRestaurantReservations(restaurantId: string) {
-    await this.assertRestaurantExists(restaurantId);
+    await this.getRestaurantOrThrow(restaurantId);
 
     return await this.db.query.reservations.findMany({
       where: (reservations) => eq(reservations.restaurantId, restaurantId),
@@ -235,10 +258,11 @@ export class ReservationsService {
     return updated;
   }
 
-  private async assertRestaurantExists(restaurantId: string) {
+  private async getRestaurantOrThrow(restaurantId: string) {
     const restaurant = await this.db.query.restaurants.findFirst({
       columns: {
         id: true,
+        openingHours: true,
       },
       where: (restaurants) => eq(restaurants.id, restaurantId),
     });
@@ -246,6 +270,102 @@ export class ReservationsService {
     if (!restaurant) {
       throw new NotFoundException('Restaurant not found');
     }
+
+    return restaurant;
+  }
+
+  private assertWithinOpeningHours(openingHours: unknown, reservationStart: Date) {
+    const reservationEnd = this.addMinutes(reservationStart, RESERVATION_SLOT_MINUTES);
+
+    if (this.isWithinOpeningHours(openingHours, reservationStart, reservationEnd)) {
+      return;
+    }
+
+    throw new BadRequestException('Restaurant is closed at the requested reservation time');
+  }
+
+  private isWithinOpeningHours(
+    openingHours: unknown,
+    reservationStart: Date,
+    reservationEnd: Date,
+  ) {
+    const hours = this.toOpeningHoursRecord(openingHours);
+    const baseStartDate = new Date(reservationStart);
+    baseStartDate.setHours(0, 0, 0, 0);
+
+    for (const offset of [-1, 0]) {
+      const dayDate = new Date(baseStartDate);
+      dayDate.setDate(baseStartDate.getDate() + offset);
+
+      const intervals = this.getOpeningIntervalsForDate(hours, dayDate);
+      const canFitReservation = intervals.some(
+        (interval) => reservationStart >= interval.start && reservationEnd <= interval.end,
+      );
+
+      if (canFitReservation) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  private getOpeningIntervalsForDate(hours: OpeningHoursRecord, dayDate: Date) {
+    const dayKey = dayKeyByJsDay[dayDate.getDay()];
+    const entry = hours[dayKey];
+
+    if (!entry || entry.isClosed) {
+      return [];
+    }
+
+    const opensMinutes = this.parseTimeToMinutes(entry.opens);
+    const closesMinutes = this.parseTimeToMinutes(entry.closes);
+
+    if (opensMinutes === null || closesMinutes === null) {
+      return [];
+    }
+
+    const start = new Date(dayDate);
+    start.setHours(0, 0, 0, 0);
+    start.setMinutes(opensMinutes);
+
+    const end = new Date(dayDate);
+    end.setHours(0, 0, 0, 0);
+    end.setMinutes(closesMinutes);
+
+    if (closesMinutes <= opensMinutes) {
+      end.setDate(end.getDate() + 1);
+    }
+
+    return [{ start, end }];
+  }
+
+  private toOpeningHoursRecord(openingHours: unknown): OpeningHoursRecord {
+    if (!openingHours || typeof openingHours !== 'object') {
+      return {};
+    }
+
+    return openingHours as OpeningHoursRecord;
+  }
+
+  private parseTimeToMinutes(value: string | null | undefined) {
+    if (!value) {
+      return null;
+    }
+
+    const matched = /^(\d{2}):(\d{2})$/.exec(value);
+    if (!matched) {
+      return null;
+    }
+
+    const hours = Number(matched[1]);
+    const minutes = Number(matched[2]);
+
+    if (hours > 23 || minutes > 59) {
+      return null;
+    }
+
+    return hours * 60 + minutes;
   }
 
   private async getReservationOrThrow(reservationId: string) {
