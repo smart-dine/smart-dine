@@ -7,13 +7,17 @@ export type KioskConnectionState = 'connecting' | 'connected' | 'disconnected' |
 
 interface JoinKioskAck {
   joined: boolean;
-  restaurantId: string;
+  restaurantId?: string;
+  error?: string;
+  code?: string;
 }
 
 interface CompleteOrderAck {
   success: boolean;
-  orderId: string;
-  status: 'completed';
+  orderId?: string;
+  status?: 'completed';
+  error?: string;
+  code?: string;
 }
 
 export interface KioskRealtimeHandlers {
@@ -32,20 +36,35 @@ export interface KioskRealtimeConnection {
 }
 
 const KIOSK_NAMESPACE_URL = `${env.VITE_API_URL.replace(/\/$/, '')}/kiosk`;
+const ACK_TIMEOUT_MS = 10_000;
+
+const normalizeErrorMessage = (message: string) => {
+  const normalized = message.trim().toLowerCase();
+
+  if (normalized.includes('operation has timed out') || normalized === 'timeout') {
+    return 'Kiosk realtime request timed out. Please wait while it reconnects.';
+  }
+
+  if (normalized.includes('socket has been disconnected')) {
+    return 'Kiosk realtime connection was interrupted. Reconnecting...';
+  }
+
+  return message;
+};
 
 const extractErrorMessage = (error: unknown, fallback: string) => {
   if (error instanceof Error && error.message) {
-    return error.message;
+    return normalizeErrorMessage(error.message);
   }
 
   if (typeof error === 'string' && error.length > 0) {
-    return error;
+    return normalizeErrorMessage(error);
   }
 
   if (error && typeof error === 'object') {
     const message = (error as { message?: unknown }).message;
     if (typeof message === 'string' && message.length > 0) {
-      return message;
+      return normalizeErrorMessage(message);
     }
   }
 
@@ -58,9 +77,9 @@ const emitWithAck = <TPayload, TResult>(
   payload: TPayload,
 ): Promise<TResult> =>
   new Promise<TResult>((resolve, reject) => {
-    socket.timeout(10_000).emit(event, payload, (error: unknown, response: TResult) => {
+    socket.timeout(ACK_TIMEOUT_MS).emit(event, payload, (error: unknown, response: TResult) => {
       if (error) {
-        reject(error);
+        reject(new Error(extractErrorMessage(error, `Kiosk realtime ${event} request failed.`)));
         return;
       }
 
@@ -80,35 +99,73 @@ export const createKioskRealtimeConnection = ({
   const socket = io(KIOSK_NAMESPACE_URL, {
     withCredentials: true,
     transports: ['websocket', 'polling'],
+    reconnection: true,
+    reconnectionDelay: 1_000,
+    reconnectionDelayMax: 5_000,
+    timeout: 20_000,
   });
 
-  socket.on('connect', () => {
-    handlers.onConnectionStateChange?.('connected');
+  let latestJoinAttempt = 0;
+
+  const joinRoom = () => {
+    const joinAttempt = ++latestJoinAttempt;
 
     void emitWithAck<{ restaurantId: string }, JoinKioskAck>(socket, 'kiosk.join', {
       restaurantId,
     })
       .then((response) => {
-        if (!response.joined) {
-          handlers.onJoinError?.('Kiosk room join was not accepted.');
+        if (joinAttempt !== latestJoinAttempt) {
           return;
         }
 
+        if (!response.joined) {
+          handlers.onConnectionStateChange?.('error');
+          handlers.onJoinError?.(response.error ?? 'Kiosk room join was not accepted.');
+          return;
+        }
+
+        handlers.onConnectionStateChange?.('connected');
         handlers.onJoinSuccess?.(response);
       })
       .catch((error: unknown) => {
+        if (joinAttempt !== latestJoinAttempt) {
+          return;
+        }
+
+        handlers.onConnectionStateChange?.('error');
         handlers.onJoinError?.(extractErrorMessage(error, 'Failed to join kiosk room.'));
       });
-  });
+  };
 
-  socket.on('disconnect', () => {
+  const handleConnect = () => {
+    handlers.onConnectionStateChange?.('connecting');
+    joinRoom();
+  };
+
+  const handleDisconnect = () => {
     handlers.onConnectionStateChange?.('disconnected');
-  });
+  };
 
-  socket.on('connect_error', (error: unknown) => {
+  const handleConnectError = (error: unknown) => {
     handlers.onConnectionStateChange?.('error');
     handlers.onJoinError?.(extractErrorMessage(error, 'Failed to connect to kiosk realtime.'));
-  });
+  };
+
+  const handleReconnectAttempt = () => {
+    handlers.onConnectionStateChange?.('connecting');
+  };
+
+  const handleSocketException = (payload: unknown) => {
+    handlers.onJoinError?.(extractErrorMessage(payload, 'Kiosk realtime operation failed.'));
+  };
+
+  socket.on('connect', handleConnect);
+
+  socket.on('disconnect', handleDisconnect);
+
+  socket.on('connect_error', handleConnectError);
+  socket.on('exception', handleSocketException);
+  socket.io.on('reconnect_attempt', handleReconnectAttempt);
 
   socket.on('order.created', (payload: RestaurantOrder) => {
     handlers.onOrderCreated?.(payload);
@@ -125,6 +182,10 @@ export const createKioskRealtimeConnection = ({
   return {
     socket,
     completeOrder: async (orderId: string) => {
+      if (!socket.connected) {
+        throw new Error('Kiosk is currently reconnecting. Please try again in a moment.');
+      }
+
       const response = await emitWithAck<{ orderId: string }, CompleteOrderAck>(
         socket,
         'order.complete',
@@ -132,11 +193,15 @@ export const createKioskRealtimeConnection = ({
       );
 
       if (!response.success) {
-        throw new Error('Failed to complete order.');
+        throw new Error(response.error ?? 'Failed to complete order.');
       }
     },
     disconnect: () => {
-      socket.removeAllListeners();
+      socket.off('connect', handleConnect);
+      socket.off('disconnect', handleDisconnect);
+      socket.off('connect_error', handleConnectError);
+      socket.off('exception', handleSocketException);
+      socket.io.off('reconnect_attempt', handleReconnectAttempt);
       socket.disconnect();
     },
   };
