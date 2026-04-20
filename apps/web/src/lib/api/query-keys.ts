@@ -1,3 +1,5 @@
+import type { ReservationAvailabilityQueryInput } from './contracts';
+
 export const queryKeys = {
   admin: {
     restaurants: () => ['admin', 'restaurants'] as const,
@@ -15,10 +17,8 @@ export const queryKeys = {
     menu: (restaurantId: string) => ['restaurants', 'menu', restaurantId] as const,
     floorMap: (restaurantId: string) => ['restaurants', 'floor-map', restaurantId] as const,
     reservations: (restaurantId: string) => ['restaurants', 'reservations', restaurantId] as const,
-    reservationAvailability: (
-      restaurantId: string,
-      params: Omit<ReservationAvailabilityQueryInput, 'from'> & { from: string },
-    ) => ['restaurants', 'reservation-availability', restaurantId, params] as const,
+    reservationAvailability: (restaurantId: string, params: ReservationAvailabilityQueryInput) =>
+      ['restaurants', 'reservation-availability', restaurantId, params] as const,
     orders: (restaurantId: string, params: { status?: string }) =>
       ['restaurants', 'orders', restaurantId, params] as const,
   },

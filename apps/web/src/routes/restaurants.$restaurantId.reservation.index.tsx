@@ -92,16 +92,22 @@ function RestaurantReservationPage() {
   const [pageError, setPageError] = useState<string | null>(null);
   const [createdReservationId, setCreatedReservationId] = useState<string | null>(null);
 
+  const availabilityLookup =
+    availabilityRequest ??
+    ({
+      from: new Date(0).toISOString(),
+      partySize: 1,
+    } satisfies ReservationAvailabilityQueryInput);
+
   const availabilityQuery = useQuery(
     reservationsQueryOptions.availability(
       restaurantId,
-      {
-        from: toIsoDateTimeValue(reservationTimeLocal) ?? new Date(0).toISOString(),
-        partySize: Number(partySize) || 1,
-      },
+      availabilityLookup,
       availabilityRequest !== null,
     ),
   );
+  const isCheckingAvailability =
+    availabilityRequest !== null && availabilityQuery.fetchStatus === 'fetching';
 
   const availableTables = availabilityQuery.data?.availableTables ?? [];
 
@@ -286,9 +292,9 @@ function RestaurantReservationPage() {
 
               <Button
                 type='submit'
-                disabled={availabilityQuery.isPending}
+                disabled={isCheckingAvailability}
               >
-                {availabilityQuery.isPending ? 'Checking availability...' : 'Check tables'}
+                {isCheckingAvailability ? 'Checking availability...' : 'Check tables'}
               </Button>
             </form>
 
@@ -335,7 +341,7 @@ function RestaurantReservationPage() {
               <p className='text-muted-foreground text-sm'>
                 Choose a date, time, and party size to load table availability.
               </p>
-            ) : availabilityQuery.isPending ? (
+            ) : isCheckingAvailability ? (
               <p className='text-muted-foreground text-sm'>Loading floor map availability...</p>
             ) : sortedAvailableTables.length === 0 ? (
               <p className='text-muted-foreground text-sm'>
