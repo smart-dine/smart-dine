@@ -3,7 +3,7 @@ import { menuItems, restaurants, restaurantTables, users } from '.';
 import { relations } from 'drizzle-orm';
 import { uuid } from 'drizzle-orm/pg-core';
 
-export const orderStatusValues = ['placed', 'preparing', 'ready', 'completed'] as const;
+export const orderStatusValues = ['placed', 'completed'] as const;
 export const orderStatusEnum = pgEnum('order_status', orderStatusValues);
 
 export const orders = pgTable('orders', {

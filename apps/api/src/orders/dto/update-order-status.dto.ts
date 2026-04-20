@@ -5,7 +5,7 @@ import { orderStatuses, type OrderStatus } from '../lib/order-status';
 export class UpdateOrderStatusDto {
   @ApiProperty({
     enum: orderStatuses,
-    example: 'preparing',
+    example: 'completed',
     description: 'New order status.',
   })
   @IsIn(orderStatuses)

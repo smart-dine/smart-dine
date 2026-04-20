@@ -1,5 +1,5 @@
 import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
-import { and, eq, schema, type Database } from '@smartdine/db';
+import { and, eq, ilike, schema, type Database } from '@smartdine/db';
 import { DATABASE } from '../database/lib/definitions';
 import type { UpdateStaffRoleDto } from './dto/update-staff-role.dto';
 import type { UpsertStaffRoleDto } from './dto/upsert-staff-role.dto';
@@ -48,15 +48,17 @@ export class StaffService {
   async addStaffRole(restaurantId: string, dto: UpsertStaffRoleDto) {
     await this.assertRestaurantExists(restaurantId);
 
+    const normalizedEmail = dto.email.trim().toLowerCase();
+
     const user = await this.db.query.users.findFirst({
       columns: {
         id: true,
       },
-      where: (users) => eq(users.id, dto.userId),
+      where: (users) => ilike(users.email, normalizedEmail),
     });
 
     if (!user) {
-      throw new NotFoundException('User not found');
+      throw new NotFoundException('User not found for the provided email');
     }
 
     const existing = await this.db.query.staffRoles.findFirst({
@@ -64,7 +66,7 @@ export class StaffService {
         id: true,
       },
       where: (staffRoles) =>
-        and(eq(staffRoles.restaurantId, restaurantId), eq(staffRoles.userId, dto.userId)),
+        and(eq(staffRoles.restaurantId, restaurantId), eq(staffRoles.userId, user.id)),
     });
 
     if (existing) {
@@ -75,7 +77,7 @@ export class StaffService {
       .insert(schema.staffRoles)
       .values({
         restaurantId,
-        userId: dto.userId,
+        userId: user.id,
         role: dto.role,
       })
       .returning();

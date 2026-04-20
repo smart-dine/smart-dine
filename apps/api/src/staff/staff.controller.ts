@@ -71,7 +71,7 @@ export class StaffController {
   @ApiBadRequestResponse({ description: 'User is already assigned to this restaurant.' })
   @ApiUnauthorizedResponse({ description: 'Authentication is required.' })
   @ApiForbiddenResponse({ description: 'Missing staff:manage permission for restaurant.' })
-  @ApiNotFoundResponse({ description: 'Restaurant or user not found.' })
+  @ApiNotFoundResponse({ description: 'Restaurant not found or user email was not found.' })
   addStaffRole(
     @Param('restaurantId', ParseUUIDPipe) restaurantId: string,
     @Body() body: UpsertStaffRoleDto,
