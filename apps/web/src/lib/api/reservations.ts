@@ -44,17 +44,12 @@ export const cancelReservation = (reservationId: string) =>
 export const reservationsQueryOptions = {
   availability: (
     restaurantId: string,
-    query: ReservationAvailabilityQueryInput,
+    query: Omit<ReservationAvailabilityQueryInput, 'from'> & { from: string },
     enabled = true,
   ) => {
-    const normalizedQuery = {
-      from: query.from,
-      partySize: query.partySize,
-    };
-
     return queryOptions({
-      queryKey: queryKeys.restaurants.reservationAvailability(restaurantId, normalizedQuery),
-      queryFn: () => getRestaurantReservationAvailability(restaurantId, normalizedQuery),
+      queryKey: queryKeys.restaurants.reservationAvailability(restaurantId, query),
+      queryFn: () => getRestaurantReservationAvailability(restaurantId, query),
       enabled: Boolean(restaurantId) && enabled,
     });
   },

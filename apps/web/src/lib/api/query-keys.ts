@@ -17,10 +17,7 @@ export const queryKeys = {
     reservations: (restaurantId: string) => ['restaurants', 'reservations', restaurantId] as const,
     reservationAvailability: (
       restaurantId: string,
-      params: {
-        from: string;
-        partySize: number;
-      },
+      params: Omit<ReservationAvailabilityQueryInput, 'from'> & { from: string },
     ) => ['restaurants', 'reservation-availability', restaurantId, params] as const,
     orders: (restaurantId: string, params: { status?: string }) =>
       ['restaurants', 'orders', restaurantId, params] as const,

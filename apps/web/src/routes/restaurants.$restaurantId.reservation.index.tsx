@@ -95,11 +95,11 @@ function RestaurantReservationPage() {
   const availabilityQuery = useQuery(
     reservationsQueryOptions.availability(
       restaurantId,
-      availabilityRequest ?? {
-        from: new Date(0).toISOString(),
-        partySize: 1,
+      {
+        from: toIsoDateTimeValue(reservationTimeLocal) ?? new Date(0).toISOString(),
+        partySize: Number(partySize) || 1,
       },
-      Boolean(availabilityRequest),
+      availabilityRequest !== null,
     ),
   );
 
