@@ -38,10 +38,10 @@ const statusPriority: Record<OrderStatus, number> = {
 };
 
 const statusCardTone: Record<OrderStatus, string> = {
-  placed: 'border-amber-300/60 bg-amber-50/60',
-  preparing: 'border-sky-300/60 bg-sky-50/60',
-  ready: 'border-emerald-400/70 bg-emerald-50/70',
-  completed: 'border-zinc-300/80 bg-zinc-100/70',
+  placed: 'border-amber-300/60 bg-amber-50/60 dark:border-amber-500/40 dark:bg-amber-950/25',
+  preparing: 'border-sky-300/60 bg-sky-50/60 dark:border-sky-500/40 dark:bg-sky-950/25',
+  ready: 'border-emerald-400/70 bg-emerald-50/70 dark:border-emerald-500/45 dark:bg-emerald-950/28',
+  completed: 'border-zinc-300/80 bg-zinc-100/70 dark:border-zinc-700/70 dark:bg-zinc-900/55',
 };
 
 const defaultStatusTotals: Record<OrderStatus, number> = {
@@ -544,7 +544,7 @@ function KioskPage() {
                   {order.orderItems.map((item) => (
                     <li
                       key={item.id}
-                      className='rounded-md border bg-white/65 px-3 py-2 text-base'
+                      className='bg-background/80 rounded-md border px-3 py-2 text-base'
                     >
                       <span className='font-semibold'>x{item.quantity}</span> {item.menuItem.name}
                       {item.specialInstructions && (
