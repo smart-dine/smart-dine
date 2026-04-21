@@ -1,6 +1,7 @@
 import { queryOptions } from '@tanstack/react-query';
 import type {
   CreateReservationInput,
+  MyReservation,
   ReservationAvailabilityQueryInput,
   RestaurantReservationAvailability,
   ReservationStatusUpdated,
@@ -27,6 +28,8 @@ export const createRestaurantReservation = (restaurantId: string, input: CreateR
 export const getRestaurantReservations = (restaurantId: string) =>
   apiRequest<RestaurantReservation[]>(`/restaurants/${restaurantId}/reservations`);
 
+export const getMyReservations = () => apiRequest<MyReservation[]>('/me/reservations');
+
 export const updateReservationStatus = (
   reservationId: string,
   input: UpdateReservationStatusInput,
@@ -47,6 +50,12 @@ export const reservationsQueryOptions = {
       queryKey: queryKeys.restaurants.reservationAvailability(restaurantId, query),
       queryFn: () => getRestaurantReservationAvailability(restaurantId, query),
       enabled: Boolean(restaurantId) && enabled,
+    }),
+  myReservations: (enabled = true) =>
+    queryOptions({
+      queryKey: queryKeys.me.reservations(),
+      queryFn: getMyReservations,
+      enabled,
     }),
   restaurantReservations: (restaurantId: string) =>
     queryOptions({

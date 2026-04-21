@@ -6,6 +6,9 @@ export const queryKeys = {
     users: (params: { search?: string; offset?: number; limit?: number }) =>
       ['admin', 'users', params] as const,
   },
+  me: {
+    reservations: () => ['me', 'reservations'] as const,
+  },
   staff: {
     myRestaurants: () => ['staff', 'my-restaurants'] as const,
     restaurantStaff: (restaurantId: string) => ['staff', 'restaurant', restaurantId] as const,
