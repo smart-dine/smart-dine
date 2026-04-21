@@ -10,7 +10,8 @@ import tailwindcss from '@tailwindcss/vite';
 
 const config = defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), 'VITE_');
-  if (!env.VITE_API_URL) {
+  
+  if (!env.VITE_API_URL && mode !== 'production' && !process.env.DOCKER_BUILD) {
     throw new Error('VITE_API_URL is a required environment variable, but it is not set.');
   }
 

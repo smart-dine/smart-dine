@@ -16,7 +16,7 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
+    ConfigModule.forRoot({ isGlobal: true, ignoreEnvFile: process.env.NODE_ENV === 'production' }),
     EventEmitterModule.forRoot(),
     DatabaseModule,
     AuthModule.forRoot({ auth, isGlobal: true }),

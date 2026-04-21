@@ -4,32 +4,27 @@ import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { createDatabase, schema } from '@smartdine/db';
 import { openAPI } from 'better-auth/plugins';
 
-const connectionString = process.env.DATABASE_URL;
-if (!connectionString) {
-  throw new Error('DATABASE_URL is not defined in environment variables');
-}
-
-if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
-  throw new Error('Google OAuth credentials are not defined in environment variables');
-}
-
-if (!process.env.GITHUB_CLIENT_ID || !process.env.GITHUB_CLIENT_SECRET) {
-  throw new Error('GitHub OAuth credentials are not defined in environment variables');
-}
+const getEnv = (key: string): string => {
+  const value = process.env[key];
+  if (!value && process.env.NODE_ENV === 'production') {
+    throw new Error(`${key} is not defined`);
+  }
+  return value || '';
+};
 
 export const auth = betterAuth({
-  baseURL: process.env.BETTER_AUTH_URL,
-  database: drizzleAdapter(createDatabase(connectionString, 'postgresql'), {
+  baseURL: getEnv('BETTER_AUTH_URL'),
+  database: drizzleAdapter(createDatabase(getEnv('DATABASE_URL'), 'postgresql'), {
     provider: 'pg',
     schema,
     usePlural: true,
   }),
-  trustedOrigins: [...(process.env.CORS_ORIGIN?.split(',') ?? [])],
+  trustedOrigins: [...(getEnv('CORS_ORIGIN')?.split(',') ?? [])],
   plugins: [openAPI()],
   advanced: {
     crossSubDomainCookies: {
       enabled: true,
-      domain: process.env.CORS_DOMAIN || 'localhost',
+      domain: getEnv('CORS_DOMAIN') || 'localhost',
     },
   },
   user: {
@@ -46,15 +41,15 @@ export const auth = betterAuth({
   socialProviders: {
     google: {
       enabled: true,
-      clientId: process.env.GOOGLE_CLIENT_ID,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      clientId: getEnv('GOOGLE_CLIENT_ID'),
+      clientSecret: getEnv('GOOGLE_CLIENT_SECRET'),
       accessType: 'offline',
       prompt: 'select_account consent',
     },
     github: {
       enabled: true,
-      clientId: process.env.GITHUB_CLIENT_ID,
-      clientSecret: process.env.GITHUB_CLIENT_SECRET,
+      clientId: getEnv('GITHUB_CLIENT_ID'),
+      clientSecret: getEnv('GITHUB_CLIENT_SECRET'),
     },
   },
 });
