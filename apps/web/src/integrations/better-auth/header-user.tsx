@@ -2,7 +2,7 @@ import { staffQueryOptions } from '#/lib/api/staff';
 import { authClient } from '#/lib/auth-client';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
-import { LayoutDashboard, LogOut, Shield, User } from 'lucide-react';
+import { CalendarClock, LayoutDashboard, LogOut, Shield, User } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@smartdine/ui/components/avatar';
 import { Button } from '@smartdine/ui/components/button';
 import {
@@ -88,6 +88,12 @@ export default function BetterAuthHeader() {
             </DropdownMenuItem>
           )}
           {(canAccessWorkspace || canAccessAdmin) && <DropdownMenuSeparator />}
+          <DropdownMenuItem asChild>
+            <Link to='/me/reservations'>
+              <CalendarClock className='mr-2 size-4' />
+              Reservations
+            </Link>
+          </DropdownMenuItem>
           <DropdownMenuItem
             className='text-destructive focus:text-destructive'
             onClick={() => void authClient.signOut()}

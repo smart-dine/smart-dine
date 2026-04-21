@@ -91,6 +91,13 @@ export type RestaurantStaffAssignment = Jsonify<
   }
 >;
 
+export type MyReservation = Jsonify<
+  ReservationRow & {
+    restaurant: Pick<RestaurantRow, 'id' | 'name' | 'address' | 'phone' | 'images'>;
+    table: Pick<RestaurantTableRow, 'id' | 'tableNumber' | 'capacity'>;
+  }
+>;
+
 export type RestaurantReservation = Jsonify<
   ReservationRow & {
     table: Pick<RestaurantTableRow, 'id' | 'tableNumber' | 'capacity'>;

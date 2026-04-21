@@ -15,6 +15,7 @@ import { Route as SignInRouteImport } from './routes/sign-in'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
+import { Route as MeReservationsRouteImport } from './routes/me.reservations'
 import { Route as AdminUsersRouteImport } from './routes/admin.users'
 import { Route as AdminRestaurantsRouteImport } from './routes/admin.restaurants'
 import { Route as RestaurantsRestaurantIdIndexRouteImport } from './routes/restaurants.$restaurantId.index'
@@ -59,6 +60,11 @@ const AdminIndexRoute = AdminIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AdminRoute,
+} as any)
+const MeReservationsRoute = MeReservationsRouteImport.update({
+  id: '/me/reservations',
+  path: '/me/reservations',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AdminUsersRoute = AdminUsersRouteImport.update({
   id: '/users',
@@ -151,6 +157,7 @@ export interface FileRoutesByFullPath {
   '/workspace': typeof WorkspaceRoute
   '/admin/restaurants': typeof AdminRestaurantsRoute
   '/admin/users': typeof AdminUsersRoute
+  '/me/reservations': typeof MeReservationsRoute
   '/admin/': typeof AdminIndexRoute
   '/restaurants/$restaurantId/admin': typeof RestaurantsRestaurantIdAdminRouteWithChildren
   '/restaurants/$restaurantId/': typeof RestaurantsRestaurantIdIndexRoute
@@ -172,6 +179,7 @@ export interface FileRoutesByTo {
   '/workspace': typeof WorkspaceRoute
   '/admin/restaurants': typeof AdminRestaurantsRoute
   '/admin/users': typeof AdminUsersRoute
+  '/me/reservations': typeof MeReservationsRoute
   '/admin': typeof AdminIndexRoute
   '/restaurants/$restaurantId': typeof RestaurantsRestaurantIdIndexRoute
   '/restaurants/$restaurantId/admin/floor-plan': typeof RestaurantsRestaurantIdAdminFloorPlanRoute
@@ -194,6 +202,7 @@ export interface FileRoutesById {
   '/workspace': typeof WorkspaceRoute
   '/admin/restaurants': typeof AdminRestaurantsRoute
   '/admin/users': typeof AdminUsersRoute
+  '/me/reservations': typeof MeReservationsRoute
   '/admin/': typeof AdminIndexRoute
   '/restaurants/$restaurantId/admin': typeof RestaurantsRestaurantIdAdminRouteWithChildren
   '/restaurants/$restaurantId/': typeof RestaurantsRestaurantIdIndexRoute
@@ -218,6 +227,7 @@ export interface FileRouteTypes {
     | '/workspace'
     | '/admin/restaurants'
     | '/admin/users'
+    | '/me/reservations'
     | '/admin/'
     | '/restaurants/$restaurantId/admin'
     | '/restaurants/$restaurantId/'
@@ -239,6 +249,7 @@ export interface FileRouteTypes {
     | '/workspace'
     | '/admin/restaurants'
     | '/admin/users'
+    | '/me/reservations'
     | '/admin'
     | '/restaurants/$restaurantId'
     | '/restaurants/$restaurantId/admin/floor-plan'
@@ -260,6 +271,7 @@ export interface FileRouteTypes {
     | '/workspace'
     | '/admin/restaurants'
     | '/admin/users'
+    | '/me/reservations'
     | '/admin/'
     | '/restaurants/$restaurantId/admin'
     | '/restaurants/$restaurantId/'
@@ -281,6 +293,7 @@ export interface RootRouteChildren {
   SignInRoute: typeof SignInRoute
   SignUpRoute: typeof SignUpRoute
   WorkspaceRoute: typeof WorkspaceRoute
+  MeReservationsRoute: typeof MeReservationsRoute
   RestaurantsRestaurantIdAdminRoute: typeof RestaurantsRestaurantIdAdminRouteWithChildren
   RestaurantsRestaurantIdIndexRoute: typeof RestaurantsRestaurantIdIndexRoute
   RestaurantsRestaurantIdCashierIndexRoute: typeof RestaurantsRestaurantIdCashierIndexRoute
@@ -331,6 +344,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/'
       preLoaderRoute: typeof AdminIndexRouteImport
       parentRoute: typeof AdminRoute
+    }
+    '/me/reservations': {
+      id: '/me/reservations'
+      path: '/me/reservations'
+      fullPath: '/me/reservations'
+      preLoaderRoute: typeof MeReservationsRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/admin/users': {
       id: '/admin/users'
@@ -486,6 +506,7 @@ const rootRouteChildren: RootRouteChildren = {
   SignInRoute: SignInRoute,
   SignUpRoute: SignUpRoute,
   WorkspaceRoute: WorkspaceRoute,
+  MeReservationsRoute: MeReservationsRoute,
   RestaurantsRestaurantIdAdminRoute:
     RestaurantsRestaurantIdAdminRouteWithChildren,
   RestaurantsRestaurantIdIndexRoute: RestaurantsRestaurantIdIndexRoute,
