@@ -6,6 +6,7 @@
     "#/*": "./src/*"
   },
   "scripts": {
+    "start": "node .output/server/index.mjs",
     "dev": "vite dev --port 3000",
     "build": "vite build",
     "preview": "vite preview",
@@ -15,8 +16,8 @@
     "check": "prettier --write . && eslint --fix"
   },
   "dependencies": {
-    "@smartdine/ui": "workspace:*",
     "@smartdine/db": "workspace:*",
+    "@smartdine/ui": "workspace:*",
     "@t3-oss/env-core": "^0.13.10",
     "@tailwindcss/vite": "^4.1.18",
     "@tanstack/react-devtools": "latest",
@@ -30,6 +31,7 @@
     "@tanstack/router-plugin": "^1.132.0",
     "better-auth": "^1.5.3",
     "lucide-react": "^0.545.0",
+    "nitro": "3.0.260415-beta",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "socket.io-client": "^4.8.3",
@@ -54,6 +56,7 @@
     "vite-tsconfig-paths": "^5.1.4",
     "vitest": "^3.0.5"
   },
+  "packageManager": "pnpm@10.32.0",
   "pnpm": {
     "onlyBuiltDependencies": [
       "esbuild",
