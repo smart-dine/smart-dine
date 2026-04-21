@@ -2,6 +2,7 @@ import 'dotenv/config';
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { createDatabase, schema } from '@smartdine/db';
+import { openAPI } from 'better-auth/plugins';
 
 const connectionString = process.env.DATABASE_URL;
 if (!connectionString) {
@@ -17,11 +18,20 @@ if (!process.env.GITHUB_CLIENT_ID || !process.env.GITHUB_CLIENT_SECRET) {
 }
 
 export const auth = betterAuth({
+  baseURL: process.env.BETTER_AUTH_URL,
   database: drizzleAdapter(createDatabase(connectionString, 'postgresql'), {
     provider: 'pg',
     schema,
     usePlural: true,
   }),
+  trustedOrigins: [...(process.env.CORS_ORIGIN?.split(',') ?? [])],
+  plugins: [openAPI()],
+  advanced: {
+    crossSubDomainCookies: {
+      enabled: true,
+      domain: process.env.CORS_DOMAIN || 'localhost',
+    },
+  },
   user: {
     additionalFields: {
       role: {

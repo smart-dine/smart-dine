@@ -34,6 +34,7 @@ async function bootstrap() {
     )
     .setVersion('1.0.0')
     .addCookieAuth('better-auth.session_token', { type: 'apiKey', in: 'cookie' }, 'session-cookie')
+    .setExternalDoc('Better Auth API', '/api/auth/reference')
     .build();
 
   const swaggerDocument = SwaggerModule.createDocument(app, swaggerConfig);
