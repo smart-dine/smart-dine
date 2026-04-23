@@ -1,5 +1,5 @@
 import { useRestaurantRouteAccess } from '#/lib/auth/access';
-import type { CreateOrderItemInput, RestaurantMenuItem } from '#/lib/api/contracts';
+import type { CreateOrderItemInput, RestaurantMenuItemWithCategories } from '#/lib/api/contracts';
 import { createRestaurantOrder } from '#/lib/api/orders';
 import { restaurantsQueryOptions } from '#/lib/api/restaurants';
 import { getApiErrorMessage } from '#/lib/api/http';
@@ -32,7 +32,7 @@ import {
 import { Textarea } from '@smartdine/ui/components/textarea';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, Navigate, createFileRoute } from '@tanstack/react-router';
-import { Minus, Plus, ShoppingBasket } from 'lucide-react';
+import { Minus, Plus, ShoppingBasket, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
 interface CashierLineItem extends CreateOrderItemInput {}
@@ -47,9 +47,11 @@ function CashierPage() {
   const access = useRestaurantRouteAccess(restaurantId, 'cashier');
 
   const menuQuery = useQuery(restaurantsQueryOptions.menu(restaurantId));
+  const categoriesQuery = useQuery(restaurantsQueryOptions.categories(restaurantId));
   const floorMapQuery = useQuery(restaurantsQueryOptions.floorMap(restaurantId));
 
   const [selectedTableId, setSelectedTableId] = useState('');
+  const [selectedCategoryIds, setSelectedCategoryIds] = useState<Set<string>>(new Set());
   const [lineItems, setLineItems] = useState<CashierLineItem[]>([]);
   const [pageError, setPageError] = useState<string | null>(null);
 
@@ -71,17 +73,29 @@ function CashierPage() {
     },
   });
 
-  const menuItems = useMemo(
-    () => (menuQuery.data ?? []).filter((item) => item.isAvailable),
-    [menuQuery.data],
-  );
+  const menuItems = useMemo(() => {
+    const available = (menuQuery.data ?? []).filter((item) => item.isAvailable);
+
+    // If no categories selected, show all available items
+    if (selectedCategoryIds.size === 0) {
+      return available;
+    }
+
+    // Filter items to those that have at least one selected category
+    return available.filter((item) =>
+      item.categories.some((ic) => selectedCategoryIds.has(ic.categoryId)),
+    );
+  }, [menuQuery.data, selectedCategoryIds]);
 
   const menuItemsById = useMemo(
     () =>
-      menuItems.reduce<Partial<Record<string, RestaurantMenuItem>>>((accumulator, item) => {
-        accumulator[item.id] = item;
-        return accumulator;
-      }, {}),
+      menuItems.reduce<Partial<Record<string, RestaurantMenuItemWithCategories>>>(
+        (accumulator, item) => {
+          accumulator[item.id] = item;
+          return accumulator;
+        },
+        {},
+      ),
     [menuItems],
   );
 
@@ -155,63 +169,115 @@ function CashierPage() {
         </CardHeader>
 
         <CardContent className='space-y-3'>
-          {menuQuery.isPending ? (
-            <p className='text-muted-foreground text-sm'>Loading available menu items...</p>
+          {menuQuery.isPending || categoriesQuery.isPending ? (
+            <p className='text-muted-foreground text-sm'>Loading menu and categories...</p>
           ) : (
-            <div className='grid gap-3 sm:grid-cols-2'>
-              {menuItems.map((menuItem) => (
-                <div
-                  key={menuItem.id}
-                  className='bg-background rounded-xl border p-4'
-                >
-                  <div className='flex items-start justify-between gap-3'>
-                    <div>
-                      <p className='font-medium'>{menuItem.name}</p>
-                      <p className='text-muted-foreground text-xs'>
-                        {menuItem.description || 'No description'}
-                      </p>
-                    </div>
-                    <Badge>{formatMoney(menuItem.price)}</Badge>
+            <>
+              {(categoriesQuery.data ?? []).length > 0 && (
+                <div className='space-y-2'>
+                  <p className='text-sm font-medium'>Filter by category</p>
+                  <div className='flex flex-wrap gap-2'>
+                    {categoriesQuery.data?.map((category) => (
+                      <Button
+                        key={category.id}
+                        variant={selectedCategoryIds.has(category.id) ? 'default' : 'outline'}
+                        size='sm'
+                        onClick={() => {
+                          const next = new Set(selectedCategoryIds);
+                          if (next.has(category.id)) {
+                            next.delete(category.id);
+                          } else {
+                            next.add(category.id);
+                          }
+                          setSelectedCategoryIds(next);
+                        }}
+                      >
+                        {category.name}
+                      </Button>
+                    ))}
+                    {selectedCategoryIds.size > 0 && (
+                      <Button
+                        variant='ghost'
+                        size='sm'
+                        onClick={() => setSelectedCategoryIds(new Set())}
+                        className='text-muted-foreground'
+                      >
+                        <X className='mr-1 size-3' />
+                        Clear
+                      </Button>
+                    )}
                   </div>
-
-                  <Button
-                    className='mt-3 w-full'
-                    variant='outline'
-                    onClick={() => {
-                      setLineItems((current) => {
-                        const existing = current.find((item) => item.menuItemId === menuItem.id);
-                        if (!existing) {
-                          return [
-                            ...current,
-                            {
-                              menuItemId: menuItem.id,
-                              quantity: 1,
-                              specialInstructions: '',
-                            },
-                          ];
-                        }
-
-                        return current.map((item) =>
-                          item.menuItemId === menuItem.id
-                            ? {
-                                ...item,
-                                quantity: item.quantity + 1,
-                              }
-                            : item,
-                        );
-                      });
-                    }}
-                  >
-                    <Plus className='mr-1 size-4' />
-                    Add to order
-                  </Button>
                 </div>
-              ))}
-
-              {menuItems.length === 0 && (
-                <p className='text-muted-foreground text-sm'>No available menu items found.</p>
               )}
-            </div>
+
+              <div className='grid gap-3 sm:grid-cols-2'>
+                {menuItems.map((menuItem) => (
+                  <div
+                    key={menuItem.id}
+                    className='bg-background rounded-xl border p-4'
+                  >
+                    <div className='flex items-start justify-between gap-3'>
+                      <div className='flex-1'>
+                        <p className='font-medium'>{menuItem.name}</p>
+                        <p className='text-muted-foreground text-xs'>
+                          {menuItem.description || 'No description'}
+                        </p>
+                        {menuItem.categories.length > 0 && (
+                          <div className='mt-2 flex flex-wrap gap-1'>
+                            {menuItem.categories.map((ic) => (
+                              <Badge
+                                key={ic.categoryId}
+                                variant='secondary'
+                                className='text-xs'
+                              >
+                                {ic.category.name}
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      <Badge>{formatMoney(menuItem.price)}</Badge>
+                    </div>
+
+                    <Button
+                      className='mt-3 w-full'
+                      variant='outline'
+                      onClick={() => {
+                        setLineItems((current) => {
+                          const existing = current.find((item) => item.menuItemId === menuItem.id);
+                          if (!existing) {
+                            return [
+                              ...current,
+                              {
+                                menuItemId: menuItem.id,
+                                quantity: 1,
+                                specialInstructions: '',
+                              },
+                            ];
+                          }
+
+                          return current.map((item) =>
+                            item.menuItemId === menuItem.id
+                              ? {
+                                  ...item,
+                                  quantity: item.quantity + 1,
+                                }
+                              : item,
+                          );
+                        });
+                      }}
+                    >
+                      <Plus className='mr-1 size-4' />
+                      Add to order
+                    </Button>
+                  </div>
+                ))}
+
+                {menuItems.length === 0 && (
+                  <p className='text-muted-foreground text-sm'>No available menu items found.</p>
+                )}
+              </div>
+            </>
           )}
         </CardContent>
       </Card>

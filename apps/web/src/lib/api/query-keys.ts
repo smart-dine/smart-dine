@@ -18,6 +18,7 @@ export const queryKeys = {
       ['restaurants', 'list', params] as const,
     detail: (restaurantId: string) => ['restaurants', 'detail', restaurantId] as const,
     menu: (restaurantId: string) => ['restaurants', 'menu', restaurantId] as const,
+    categories: (restaurantId: string) => ['restaurants', 'categories', restaurantId] as const,
     floorMap: (restaurantId: string) => ['restaurants', 'floor-map', restaurantId] as const,
     reservations: (restaurantId: string) => ['restaurants', 'reservations', restaurantId] as const,
     reservationAvailability: (restaurantId: string, params: ReservationAvailabilityQueryInput) =>

@@ -11,6 +11,7 @@ type Jsonify<T> = T extends Date
 type RestaurantRow = InferSelectModel<typeof schema.restaurants>;
 type RestaurantTableRow = InferSelectModel<typeof schema.restaurantTables>;
 type MenuItemRow = InferSelectModel<typeof schema.menuItems>;
+type MenuItemCategoryRow = InferSelectModel<typeof schema.menuItemCategories>;
 type StaffRoleRow = InferSelectModel<typeof schema.staffRoles>;
 type UserRow = InferSelectModel<typeof schema.users>;
 type ReservationRow = InferSelectModel<typeof schema.reservations>;
@@ -58,6 +59,18 @@ export type PublicRestaurantDetail = Jsonify<
 >;
 
 export type RestaurantMenuItem = Jsonify<MenuItemRow>;
+
+export type MenuItemCategory = Jsonify<MenuItemCategoryRow>;
+
+export type RestaurantMenuItemWithCategories = Jsonify<
+  MenuItemRow & {
+    categories: Array<{
+      menuItemId: string;
+      categoryId: string;
+      category: Pick<MenuItemCategoryRow, 'id' | 'name'>;
+    }>;
+  }
+>;
 
 export type RestaurantFloorTable = Jsonify<
   Pick<
@@ -179,6 +192,10 @@ export interface CreateMenuItemInput {
   price: number;
   isAvailable?: boolean;
   image?: string;
+}
+
+export interface CreateMenuItemCategoryInput {
+  name: string;
 }
 
 export type UpdateMenuItemInput = Partial<CreateMenuItemInput>;

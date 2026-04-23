@@ -1,7 +1,9 @@
 import { queryOptions } from '@tanstack/react-query';
 import type {
+  CreateMenuItemCategoryInput,
   CreateMenuItemInput,
   FloorPlanTableInput,
+  MenuItemCategory,
   PaginationQueryInput,
   PublicRestaurantDetail,
   PublicRestaurantListItem,
@@ -9,6 +11,7 @@ import type {
   RestaurantFloorMap,
   RestaurantFloorTable,
   RestaurantMenuItem,
+  RestaurantMenuItemWithCategories,
   UpdateMenuItemInput,
   UpdateRestaurantInput,
 } from './contracts';
@@ -32,7 +35,7 @@ export const getRestaurant = (restaurantId: string) =>
   apiRequest<PublicRestaurantDetail>(`/restaurants/${restaurantId}`);
 
 export const getRestaurantMenu = (restaurantId: string) =>
-  apiRequest<RestaurantMenuItem[]>(`/restaurants/${restaurantId}/menu-items`);
+  apiRequest<RestaurantMenuItemWithCategories[]>(`/restaurants/${restaurantId}/menu-items`);
 
 export const getRestaurantFloorMap = (restaurantId: string) =>
   apiRequest<RestaurantFloorMap>(`/restaurants/${restaurantId}/floor-map`);
@@ -105,6 +108,36 @@ export const uploadMenuItemImage = (restaurantId: string, menuItemId: string, fi
   );
 };
 
+export const getRestaurantCategories = (restaurantId: string) =>
+  apiRequest<MenuItemCategory[]>(`/restaurants/${restaurantId}/categories`);
+
+export const createRestaurantCategory = (
+  restaurantId: string,
+  input: CreateMenuItemCategoryInput,
+) =>
+  apiRequest<MenuItemCategory>(`/restaurants/${restaurantId}/categories`, {
+    method: 'POST',
+    body: input,
+  });
+
+export const deleteRestaurantCategory = (restaurantId: string, categoryId: string) =>
+  apiRequest<MenuItemCategory>(`/restaurants/${restaurantId}/categories/${categoryId}`, {
+    method: 'DELETE',
+  });
+
+export const setMenuItemCategories = (
+  restaurantId: string,
+  menuItemId: string,
+  categoryIds: string[],
+) =>
+  apiRequest<RestaurantMenuItemWithCategories>(
+    `/restaurants/${restaurantId}/menu-items/${menuItemId}/categories`,
+    {
+      method: 'POST',
+      body: { categoryIds },
+    },
+  );
+
 export const restaurantsQueryOptions = {
   list: (query: RestaurantListQuery = {}) => {
     const normalized = normalizeRestaurantListQuery(query);
@@ -124,6 +157,12 @@ export const restaurantsQueryOptions = {
     queryOptions({
       queryKey: queryKeys.restaurants.menu(restaurantId),
       queryFn: () => getRestaurantMenu(restaurantId),
+      enabled: Boolean(restaurantId),
+    }),
+  categories: (restaurantId: string) =>
+    queryOptions({
+      queryKey: queryKeys.restaurants.categories(restaurantId),
+      queryFn: () => getRestaurantCategories(restaurantId),
       enabled: Boolean(restaurantId),
     }),
   floorMap: (restaurantId: string) =>

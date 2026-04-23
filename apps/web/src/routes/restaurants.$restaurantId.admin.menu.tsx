@@ -1,13 +1,16 @@
 import {
+  createRestaurantCategory,
   createMenuItem,
+  deleteRestaurantCategory,
   deleteMenuItem,
   restaurantsQueryOptions,
+  setMenuItemCategories,
   updateMenuItem,
   uploadMenuItemImage,
 } from '#/lib/api/restaurants';
 import type {
   CreateMenuItemInput,
-  RestaurantMenuItem,
+  RestaurantMenuItemWithCategories,
   UpdateMenuItemInput,
 } from '#/lib/api/contracts';
 import { getApiErrorMessage } from '#/lib/api/http';
@@ -51,6 +54,7 @@ interface MenuFormState {
   description: string;
   price: string;
   isAvailable: boolean;
+  selectedCategoryIds: Set<string>;
 }
 
 export const Route = createFileRoute('/restaurants/$restaurantId/admin/menu')({
@@ -64,22 +68,28 @@ const createDefaultFormState = (): MenuFormState => ({
   description: '',
   price: '',
   isAvailable: true,
+  selectedCategoryIds: new Set(),
 });
 
 function RestaurantMenuPage() {
   const queryClient = useQueryClient();
   const { restaurantId } = Route.useParams();
 
+  const [newCategoryName, setNewCategoryName] = useState('');
   const [createForm, setCreateForm] = useState<MenuFormState>(createDefaultFormState);
-  const [editingItem, setEditingItem] = useState<RestaurantMenuItem | null>(null);
+  const [editingItem, setEditingItem] = useState<RestaurantMenuItemWithCategories | null>(null);
   const [editForm, setEditForm] = useState<MenuFormState>(createDefaultFormState);
   const [pageError, setPageError] = useState<string | null>(null);
 
   const menuQuery = useQuery(restaurantsQueryOptions.menu(restaurantId));
+  const categoriesQuery = useQuery(restaurantsQueryOptions.categories(restaurantId));
 
   const invalidateMenu = async () => {
     await queryClient.invalidateQueries({
       queryKey: ['restaurants', 'menu', restaurantId],
+    });
+    await queryClient.invalidateQueries({
+      queryKey: ['restaurants', 'categories', restaurantId],
     });
     await queryClient.invalidateQueries({
       queryKey: ['restaurants', 'detail', restaurantId],
@@ -87,7 +97,18 @@ function RestaurantMenuPage() {
   };
 
   const createMutation = useMutation({
-    mutationFn: (input: CreateMenuItemInput) => createMenuItem(restaurantId, input),
+    mutationFn: async (input: CreateMenuItemInput) => {
+      const created = await createMenuItem(restaurantId, input);
+      // Set categories if any were selected
+      if (createForm.selectedCategoryIds.size > 0) {
+        await setMenuItemCategories(
+          restaurantId,
+          created.id,
+          Array.from(createForm.selectedCategoryIds),
+        );
+      }
+      return created;
+    },
     onSuccess: async () => {
       setCreateForm(createDefaultFormState());
       setPageError(null);
@@ -99,8 +120,21 @@ function RestaurantMenuPage() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ menuItemId, input }: { menuItemId: string; input: UpdateMenuItemInput }) =>
-      updateMenuItem(restaurantId, menuItemId, input),
+    mutationFn: async ({
+      menuItemId,
+      input,
+    }: {
+      menuItemId: string;
+      input: UpdateMenuItemInput;
+    }) => {
+      await updateMenuItem(restaurantId, menuItemId, input);
+      // Update categories
+      await setMenuItemCategories(
+        restaurantId,
+        menuItemId,
+        Array.from(editForm.selectedCategoryIds),
+      );
+    },
     onSuccess: async () => {
       setEditingItem(null);
       setPageError(null);
@@ -134,7 +168,51 @@ function RestaurantMenuPage() {
     },
   });
 
+  const createCategoryMutation = useMutation({
+    mutationFn: (name: string) =>
+      createRestaurantCategory(restaurantId, {
+        name,
+      }),
+    onSuccess: async () => {
+      setNewCategoryName('');
+      setPageError(null);
+      await invalidateMenu();
+    },
+    onError: (error) => {
+      setPageError(getApiErrorMessage(error, 'Failed to create category.'));
+    },
+  });
+
+  const deleteCategoryMutation = useMutation({
+    mutationFn: (categoryId: string) => deleteRestaurantCategory(restaurantId, categoryId),
+    onSuccess: async (_deletedCategory, categoryId) => {
+      setCreateForm((current) => {
+        const next = new Set(current.selectedCategoryIds);
+        next.delete(categoryId);
+        return {
+          ...current,
+          selectedCategoryIds: next,
+        };
+      });
+      setEditForm((current) => {
+        const next = new Set(current.selectedCategoryIds);
+        next.delete(categoryId);
+        return {
+          ...current,
+          selectedCategoryIds: next,
+        };
+      });
+
+      setPageError(null);
+      await invalidateMenu();
+    },
+    onError: (error) => {
+      setPageError(getApiErrorMessage(error, 'Failed to delete category.'));
+    },
+  });
+
   const menuItems = menuQuery.data ?? [];
+  const categoryOptions = categoriesQuery.data ?? [];
 
   return (
     <div className='grid gap-4 lg:grid-cols-[1.05fr_1.95fr]'>
@@ -146,7 +224,78 @@ function RestaurantMenuPage() {
           </CardTitle>
           <CardDescription>Create new dishes and set initial availability.</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className='space-y-4'>
+          <div className='space-y-3 rounded-lg border p-3'>
+            <div>
+              <p className='text-sm font-medium'>Category Manager</p>
+              <p className='text-muted-foreground text-xs'>
+                Add categories here, then assign them to menu items below.
+              </p>
+            </div>
+
+            <form
+              className='flex gap-2'
+              onSubmit={(event) => {
+                event.preventDefault();
+
+                const trimmedName = newCategoryName.trim();
+                if (!trimmedName) {
+                  return;
+                }
+
+                createCategoryMutation.mutate(trimmedName);
+              }}
+            >
+              <Input
+                value={newCategoryName}
+                onChange={(event) => setNewCategoryName(event.target.value)}
+                placeholder='e.g. Drinks, Alcoholic, Dessert'
+                maxLength={80}
+              />
+              <Button
+                type='submit'
+                variant='secondary'
+                disabled={createCategoryMutation.isPending || newCategoryName.trim().length === 0}
+              >
+                Add
+              </Button>
+            </form>
+
+            {categoriesQuery.isPending ? (
+              <p className='text-muted-foreground text-xs'>Loading categories...</p>
+            ) : categoryOptions.length === 0 ? (
+              <p className='text-muted-foreground text-xs'>No categories yet.</p>
+            ) : (
+              <div className='flex flex-wrap gap-2'>
+                {categoryOptions.map((category) => (
+                  <Badge
+                    key={category.id}
+                    variant='outline'
+                    className='inline-flex items-center gap-1 pr-1'
+                  >
+                    <span>{category.name}</span>
+                    <button
+                      type='button'
+                      className='hover:bg-muted rounded p-0.5'
+                      aria-label={`Delete ${category.name} category`}
+                      disabled={deleteCategoryMutation.isPending}
+                      onClick={() => {
+                        const shouldDelete = window.confirm(
+                          `Delete ${category.name} category? It will be removed from all menu items.`,
+                        );
+                        if (shouldDelete) {
+                          deleteCategoryMutation.mutate(category.id);
+                        }
+                      }}
+                    >
+                      <Trash2 className='size-3' />
+                    </button>
+                  </Badge>
+                ))}
+              </div>
+            )}
+          </div>
+
           <form
             className='space-y-3'
             onSubmit={(event) => {
@@ -221,6 +370,46 @@ function RestaurantMenuPage() {
               Available for ordering
             </label>
 
+            <div className='grid gap-2'>
+              <Label>Categories</Label>
+              {categoriesQuery.isPending ? (
+                <p className='text-muted-foreground text-xs'>Loading categories...</p>
+              ) : categoryOptions.length === 0 ? (
+                <p className='text-muted-foreground text-xs'>
+                  No categories yet. Add one in Category Manager above.
+                </p>
+              ) : (
+                <div className='space-y-2'>
+                  {categoryOptions.map((category) => (
+                    <label
+                      key={category.id}
+                      className='flex items-center gap-2 text-sm'
+                    >
+                      <input
+                        type='checkbox'
+                        checked={createForm.selectedCategoryIds.has(category.id)}
+                        onChange={(event) =>
+                          setCreateForm((current) => {
+                            const next = new Set(current.selectedCategoryIds);
+                            if (event.target.checked) {
+                              next.add(category.id);
+                            } else {
+                              next.delete(category.id);
+                            }
+                            return {
+                              ...current,
+                              selectedCategoryIds: next,
+                            };
+                          })
+                        }
+                      />
+                      {category.name}
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
+
             <Button
               type='submit'
               className='w-full'
@@ -263,6 +452,19 @@ function RestaurantMenuPage() {
                         <p className='text-muted-foreground text-xs'>
                           {item.description || 'No description'}
                         </p>
+                        {item.categories.length > 0 && (
+                          <div className='mt-2 flex flex-wrap gap-1'>
+                            {item.categories.map((ic) => (
+                              <Badge
+                                key={ic.categoryId}
+                                variant='outline'
+                                className='text-xs'
+                              >
+                                {ic.category.name}
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </TableCell>
                     <TableCell>{formatMoney(item.price)}</TableCell>
@@ -287,6 +489,9 @@ function RestaurantMenuPage() {
                               description: item.description ?? '',
                               price: (item.price / 100).toFixed(2),
                               isAvailable: item.isAvailable,
+                              selectedCategoryIds: new Set(
+                                item.categories.map((ic) => ic.categoryId),
+                              ),
                             });
                           }}
                         >
@@ -380,6 +585,48 @@ function RestaurantMenuPage() {
                                 />
                                 Available for ordering
                               </label>
+
+                              <div className='grid gap-2'>
+                                <Label>Categories</Label>
+                                {categoriesQuery.isPending ? (
+                                  <p className='text-muted-foreground text-xs'>
+                                    Loading categories...
+                                  </p>
+                                ) : categoryOptions.length === 0 ? (
+                                  <p className='text-muted-foreground text-xs'>
+                                    No categories yet. Add one in Category Manager.
+                                  </p>
+                                ) : (
+                                  <div className='space-y-2'>
+                                    {categoryOptions.map((category) => (
+                                      <label
+                                        key={category.id}
+                                        className='flex items-center gap-2 text-sm'
+                                      >
+                                        <input
+                                          type='checkbox'
+                                          checked={editForm.selectedCategoryIds.has(category.id)}
+                                          onChange={(event) =>
+                                            setEditForm((current) => {
+                                              const next = new Set(current.selectedCategoryIds);
+                                              if (event.target.checked) {
+                                                next.add(category.id);
+                                              } else {
+                                                next.delete(category.id);
+                                              }
+                                              return {
+                                                ...current,
+                                                selectedCategoryIds: next,
+                                              };
+                                            })
+                                          }
+                                        />
+                                        {category.name}
+                                      </label>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
 
                               <DialogFooter>
                                 <Button
