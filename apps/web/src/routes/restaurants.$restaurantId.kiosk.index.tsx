@@ -16,7 +16,16 @@ import {
 } from '@smartdine/ui/components/card';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, Navigate, createFileRoute } from '@tanstack/react-router';
-import { Bell, Monitor, RefreshCw, SquareMenu, Wifi, WifiOff } from 'lucide-react';
+import {
+  Bell,
+  Maximize,
+  Minimize,
+  Monitor,
+  RefreshCw,
+  SquareMenu,
+  Wifi,
+  WifiOff,
+} from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 const orderStatuses: OrderStatus[] = ['placed', 'completed'];
@@ -93,6 +102,7 @@ function KioskPage() {
 
   const ordersQuery = useQuery(ordersQueryOptions.restaurantOrders(restaurantId));
   const soundEnabledRef = useRef(false);
+  const mainRef = useRef<HTMLElement>(null);
 
   const connectionRef = useRef<KioskRealtimeConnection | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -106,6 +116,7 @@ function KioskPage() {
   const [soundEnabled, setSoundEnabled] = useState(false);
   const [completingOrderId, setCompletingOrderId] = useState<string | null>(null);
   const [nowMs, setNowMs] = useState(() => Date.now());
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   useEffect(() => {
     const storedPreference = window.localStorage.getItem('smartdine:kiosk-sound-enabled');
@@ -130,6 +141,31 @@ function KioskPage() {
         void audioContextRef.current.close();
         audioContextRef.current = null;
       }
+    };
+  }, []);
+
+  const toggleFullscreen = async () => {
+    if (!mainRef.current) return;
+
+    try {
+      if (!document.fullscreenElement) {
+        await mainRef.current.requestFullscreen();
+      } else {
+        await document.exitFullscreen();
+      }
+    } catch (error) {
+      console.error('Fullscreen toggle failed:', error);
+    }
+  };
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
     };
   }, []);
 
@@ -367,7 +403,10 @@ function KioskPage() {
   }
 
   return (
-    <main className='container mx-auto flex flex-col gap-4 px-4 py-6'>
+    <main
+      ref={mainRef}
+      className='container mx-auto flex flex-col gap-4 px-4 py-6'
+    >
       <Card>
         <CardHeader className='gap-4'>
           <div className='flex flex-wrap items-center justify-between gap-3'>
@@ -452,6 +491,20 @@ function KioskPage() {
             >
               <RefreshCw className='mr-2 size-4' />
               Refresh queue
+            </Button>
+
+            <Button
+              className='h-12 text-base font-semibold'
+              variant={isFullscreen ? 'default' : 'outline'}
+              onClick={() => void toggleFullscreen()}
+              title={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
+            >
+              {isFullscreen ? (
+                <Minimize className='mr-2 size-4' />
+              ) : (
+                <Maximize className='mr-2 size-4' />
+              )}
+              {isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
             </Button>
           </div>
 

@@ -3,14 +3,13 @@ import { devtools } from '@tanstack/devtools-vite';
 import tsconfigPaths from 'vite-tsconfig-paths';
 
 import { tanstackStart } from '@tanstack/react-start/plugin/vite';
-import { nitro } from 'nitro/vite';
 
 import viteReact from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 
 const config = defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), 'VITE_');
-  
+
   if (!env.VITE_API_URL && mode !== 'production' && !process.env.DOCKER_BUILD) {
     throw new Error('VITE_API_URL is a required environment variable, but it is not set.');
   }
@@ -25,7 +24,6 @@ const config = defineConfig(({ mode }) => {
           enabled: true,
         },
       }),
-      nitro(),
       viteReact({
         babel: {
           plugins: ['babel-plugin-react-compiler'],
