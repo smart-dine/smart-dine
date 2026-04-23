@@ -4,3 +4,4 @@ export * from './restaurant.schema';
 export * from './staff-role.schema';
 export * from './order.schema';
 export * from './menu-item.schema';
+export * from './menu-item-category.schema';

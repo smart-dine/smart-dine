@@ -1,6 +1,6 @@
 import { relations } from 'drizzle-orm';
 import { text, integer, boolean, pgTable } from 'drizzle-orm/pg-core';
-import { orderItems } from '.';
+import { orderItems, menuItemsToCategories } from '.';
 import { restaurants } from '.';
 import { uuid } from 'drizzle-orm/pg-core';
 
@@ -22,4 +22,5 @@ export const menuItemsRelations = relations(menuItems, ({ one, many }) => ({
     references: [restaurants.id],
   }),
   orderItems: many(orderItems),
+  categories: many(menuItemsToCategories),
 }));

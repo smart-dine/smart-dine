@@ -36,10 +36,12 @@ import {
   ALLOWED_IMAGE_FILE_TYPE_REGEX,
   MAX_IMAGE_UPLOAD_BYTES,
 } from '../common/constants/upload.constants';
+import { CreateMenuItemCategoryDto } from './dto/create-menu-item-category.dto';
 import { CreateMenuItemDto } from './dto/create-menu-item.dto';
 import { RestaurantsService } from './restaurants.service';
 import { ListRestaurantsDto } from './dto/list-restaurants.dto';
 import { ReplaceFloorPlanDto } from './dto/replace-floor-plan.dto';
+import { SetMenuItemCategoriesDto } from './dto/set-menu-item-categories.dto';
 import { UpdateMenuItemDto } from './dto/update-menu-item.dto';
 import { UpdateRestaurantDto } from './dto/update-restaurant.dto';
 import { UpdateRestaurantImageDto } from './dto/update-restaurant-image.dto';
@@ -397,5 +399,94 @@ export class RestaurantsController {
     @Param('menuItemId', ParseUUIDPipe) menuItemId: string,
   ) {
     return this.restaurantsService.deleteMenuItem(restaurantId, menuItemId);
+  }
+
+  @Get(':restaurantId/categories')
+  @AllowAnonymous()
+  @ApiOperation({ summary: 'List menu item categories for a restaurant' })
+  @ApiParam({ name: 'restaurantId', format: 'uuid' })
+  @ApiOkResponse({
+    description: 'Menu item categories for this restaurant.',
+    schema: {
+      type: 'array',
+      items: { type: 'object' },
+    },
+  })
+  @ApiNotFoundResponse({ description: 'Restaurant not found.' })
+  getCategories(@Param('restaurantId', ParseUUIDPipe) restaurantId: string) {
+    return this.restaurantsService.getCategories(restaurantId);
+  }
+
+  @Post(':restaurantId/categories')
+  @RequireRestaurantPermissions(['menu:manage'])
+  @ApiCookieAuth('session-cookie')
+  @ApiOperation({ summary: 'Create a menu item category for a restaurant' })
+  @ApiParam({ name: 'restaurantId', format: 'uuid' })
+  @ApiCreatedResponse({
+    description: 'Menu item category created.',
+    schema: {
+      type: 'object',
+    },
+  })
+  @ApiBadRequestResponse({ description: 'Invalid category payload.' })
+  @ApiUnauthorizedResponse({ description: 'Authentication is required.' })
+  @ApiForbiddenResponse({ description: 'Missing menu:manage permission.' })
+  @ApiNotFoundResponse({ description: 'Restaurant not found.' })
+  @ApiConflictResponse({ description: 'A category with this name already exists.' })
+  createCategory(
+    @Param('restaurantId', ParseUUIDPipe) restaurantId: string,
+    @Body() body: CreateMenuItemCategoryDto,
+  ) {
+    return this.restaurantsService.createCategory(restaurantId, body.name);
+  }
+
+  @Delete(':restaurantId/categories/:categoryId')
+  @RequireRestaurantPermissions(['menu:manage'])
+  @ApiCookieAuth('session-cookie')
+  @ApiOperation({ summary: 'Delete a menu item category from a restaurant' })
+  @ApiParam({ name: 'restaurantId', format: 'uuid' })
+  @ApiParam({ name: 'categoryId', format: 'uuid' })
+  @ApiOkResponse({
+    description: 'Deleted menu item category payload.',
+    schema: {
+      type: 'object',
+    },
+  })
+  @ApiUnauthorizedResponse({ description: 'Authentication is required.' })
+  @ApiForbiddenResponse({ description: 'Missing menu:manage permission.' })
+  @ApiNotFoundResponse({ description: 'Category not found for this restaurant.' })
+  deleteCategory(
+    @Param('restaurantId', ParseUUIDPipe) restaurantId: string,
+    @Param('categoryId', ParseUUIDPipe) categoryId: string,
+  ) {
+    return this.restaurantsService.deleteCategory(restaurantId, categoryId);
+  }
+
+  @Post(':restaurantId/menu-items/:menuItemId/categories')
+  @RequireRestaurantPermissions(['menu:manage'])
+  @ApiCookieAuth('session-cookie')
+  @ApiOperation({ summary: 'Set categories for a menu item' })
+  @ApiParam({ name: 'restaurantId', format: 'uuid' })
+  @ApiParam({ name: 'menuItemId', format: 'uuid' })
+  @ApiCreatedResponse({
+    description: 'Menu item with updated categories.',
+    schema: {
+      type: 'object',
+    },
+  })
+  @ApiBadRequestResponse({ description: 'Invalid category IDs or payload.' })
+  @ApiUnauthorizedResponse({ description: 'Authentication is required.' })
+  @ApiForbiddenResponse({ description: 'Missing menu:manage permission.' })
+  @ApiNotFoundResponse({ description: 'Menu item not found for this restaurant.' })
+  setMenuItemCategories(
+    @Param('restaurantId', ParseUUIDPipe) restaurantId: string,
+    @Param('menuItemId', ParseUUIDPipe) menuItemId: string,
+    @Body() body: SetMenuItemCategoriesDto,
+  ) {
+    return this.restaurantsService.setMenuItemCategories(
+      restaurantId,
+      menuItemId,
+      body.categoryIds,
+    );
   }
 }

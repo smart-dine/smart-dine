@@ -81,6 +81,18 @@ export class RestaurantsService {
     return await this.db.query.menuItems.findMany({
       where: (menuItems) => eq(menuItems.restaurantId, restaurantId),
       orderBy: (menuItems) => asc(menuItems.name),
+      with: {
+        categories: {
+          with: {
+            category: {
+              columns: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
+      },
     });
   }
 
@@ -361,6 +373,117 @@ export class RestaurantsService {
       .returning();
 
     return deleted;
+  }
+
+  async getCategories(restaurantId: string) {
+    await this.assertRestaurantExists(restaurantId);
+
+    return await this.db.query.menuItemCategories.findMany({
+      where: (categories) => eq(categories.restaurantId, restaurantId),
+      orderBy: (categories) => asc(categories.name),
+    });
+  }
+
+  async createCategory(restaurantId: string, name: string) {
+    await this.assertRestaurantExists(restaurantId);
+
+    const normalizedName = name.trim();
+    const existingCategories = await this.db.query.menuItemCategories.findMany({
+      columns: {
+        name: true,
+      },
+      where: (categories) => eq(categories.restaurantId, restaurantId),
+    });
+
+    if (
+      existingCategories.some(
+        (category) => category.name.toLocaleLowerCase() === normalizedName.toLocaleLowerCase(),
+      )
+    ) {
+      throw new ConflictException('Category name already exists for this restaurant');
+    }
+
+    const [created] = await this.db
+      .insert(schema.menuItemCategories)
+      .values({
+        restaurantId,
+        name: normalizedName,
+      })
+      .returning();
+
+    return created;
+  }
+
+  async deleteCategory(restaurantId: string, categoryId: string) {
+    await this.assertRestaurantExists(restaurantId);
+
+    const [deleted] = await this.db
+      .delete(schema.menuItemCategories)
+      .where(
+        and(
+          eq(schema.menuItemCategories.id, categoryId),
+          eq(schema.menuItemCategories.restaurantId, restaurantId),
+        ),
+      )
+      .returning();
+
+    if (!deleted) {
+      throw new NotFoundException('Category not found for this restaurant');
+    }
+
+    return deleted;
+  }
+
+  async setMenuItemCategories(restaurantId: string, menuItemId: string, categoryIds: string[]) {
+    await this.assertMenuItemExists(restaurantId, menuItemId);
+
+    const uniqueCategoryIds = [...new Set(categoryIds)];
+    if (uniqueCategoryIds.length !== categoryIds.length) {
+      throw new BadRequestException('Duplicate category IDs are not allowed');
+    }
+
+    if (uniqueCategoryIds.length > 0) {
+      // Verify that all categories belong to this restaurant
+      const categories = await this.db.query.menuItemCategories.findMany({
+        where: (categories) =>
+          and(eq(categories.restaurantId, restaurantId), inArray(categories.id, uniqueCategoryIds)),
+      });
+
+      if (categories.length !== uniqueCategoryIds.length) {
+        throw new BadRequestException('One or more category IDs are invalid for this restaurant');
+      }
+    }
+
+    // Delete existing category assignments
+    await this.db
+      .delete(schema.menuItemsToCategories)
+      .where(eq(schema.menuItemsToCategories.menuItemId, menuItemId));
+
+    // Insert new category assignments if any
+    if (uniqueCategoryIds.length > 0) {
+      await this.db.insert(schema.menuItemsToCategories).values(
+        uniqueCategoryIds.map((categoryId) => ({
+          menuItemId,
+          categoryId,
+        })),
+      );
+    }
+
+    return this.db.query.menuItems.findFirst({
+      where: (menuItems) => eq(menuItems.id, menuItemId),
+      with: {
+        categories: {
+          with: {
+            category: {
+              columns: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
+      },
+    });
   }
 
   private async getRestaurantOrThrow(restaurantId: string) {
