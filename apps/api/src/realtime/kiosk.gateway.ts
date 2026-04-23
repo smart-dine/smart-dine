@@ -19,6 +19,7 @@ import { OrdersService } from '../orders/orders.service';
 import {
   ORDER_COMPLETED_EVENT,
   ORDER_CREATED_EVENT,
+  ORDER_ITEMS_UPDATED_EVENT,
   ORDER_STATUS_UPDATED_EVENT,
   type OrderSocketEventPayload,
 } from '../orders/lib/order-events';
@@ -183,6 +184,11 @@ export class KioskGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.emitOrderCompleted(event.restaurantId, event.payload);
   }
 
+  @OnEvent(ORDER_ITEMS_UPDATED_EVENT)
+  handleOrderItemsUpdatedEvent(event: OrderSocketEventPayload) {
+    this.emitOrderItemsUpdated(event.restaurantId, event.payload);
+  }
+
   emitOrderCreated(restaurantId: string, payload: unknown) {
     this.server.to(this.roomName(restaurantId)).emit('order.created', payload);
   }
@@ -193,6 +199,10 @@ export class KioskGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   emitOrderCompleted(restaurantId: string, payload: unknown) {
     this.server.to(this.roomName(restaurantId)).emit('order.completed', payload);
+  }
+
+  emitOrderItemsUpdated(restaurantId: string, payload: unknown) {
+    this.server.to(this.roomName(restaurantId)).emit('order.items.updated', payload);
   }
 
   private roomName(restaurantId: string) {

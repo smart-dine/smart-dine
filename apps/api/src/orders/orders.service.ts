@@ -10,11 +10,12 @@ import { and, desc, eq, inArray, schema, type Database } from '@smartdine/db';
 import { DATABASE } from '../database/lib/definitions';
 import { RbacService } from '../rbac/rbac.service';
 import type { CreateOrderDto } from './dto/create-order.dto';
-import type { OrderStatus } from './lib/order-status';
+import type { OrderItemStatus, OrderStatus } from './lib/order-status';
 import type { UserSession } from '@thallesp/nestjs-better-auth';
 import {
   ORDER_COMPLETED_EVENT,
   ORDER_CREATED_EVENT,
+  ORDER_ITEMS_UPDATED_EVENT,
   ORDER_STATUS_UPDATED_EVENT,
 } from './lib/order-events';
 
@@ -68,8 +69,44 @@ export class OrdersService {
       return total + menuItem.price * item.quantity;
     }, 0);
 
-    const createdOrder = await this.db.transaction(async (tx) => {
-      const [order] = await tx
+    const order = await this.db.transaction(async (tx) => {
+      const openOrder = await tx.query.orders.findFirst({
+        columns: {
+          id: true,
+          totalAmount: true,
+        },
+        where: (orders) =>
+          and(
+            eq(orders.restaurantId, restaurantId),
+            eq(orders.tableId, body.tableId),
+            eq(orders.status, 'placed'),
+          ),
+        orderBy: (orders) => [desc(orders.createdAt)],
+      });
+
+      if (openOrder) {
+        await tx.insert(schema.orderItems).values(
+          body.items.map((item) => ({
+            orderId: openOrder.id,
+            menuItemId: item.menuItemId,
+            quantity: item.quantity,
+            specialInstructions: item.specialInstructions ?? null,
+            status: 'placed' as const,
+          })),
+        );
+
+        await tx
+          .update(schema.orders)
+          .set({
+            totalAmount: openOrder.totalAmount + totalAmount,
+            operatorId: session.user.id,
+          })
+          .where(eq(schema.orders.id, openOrder.id));
+
+        return openOrder.id;
+      }
+
+      const [createdOrder] = await tx
         .insert(schema.orders)
         .values({
           restaurantId,
@@ -78,58 +115,29 @@ export class OrdersService {
           status: 'placed',
           totalAmount,
         })
-        .returning();
+        .returning({ id: schema.orders.id });
 
       await tx.insert(schema.orderItems).values(
         body.items.map((item) => ({
-          orderId: order.id,
+          orderId: createdOrder.id,
           menuItemId: item.menuItemId,
           quantity: item.quantity,
           specialInstructions: item.specialInstructions ?? null,
+          status: 'placed' as const,
         })),
       );
 
-      return order;
+      return createdOrder.id;
     });
 
-    const order = await this.db.query.orders.findFirst({
-      where: (orders) => eq(orders.id, createdOrder.id),
-      with: {
-        orderItems: {
-          columns: {
-            id: true,
-            quantity: true,
-            specialInstructions: true,
-          },
-          with: {
-            menuItem: {
-              columns: {
-                id: true,
-                name: true,
-                price: true,
-                image: true,
-              },
-            },
-          },
-        },
-        table: {
-          columns: {
-            id: true,
-            tableNumber: true,
-            capacity: true,
-          },
-        },
-      },
+    const fullOrder = await this.getOrderWithDetails(order);
+
+    this.events.emit(ORDER_CREATED_EVENT, {
+      restaurantId,
+      payload: fullOrder,
     });
 
-    if (order) {
-      this.events.emit(ORDER_CREATED_EVENT, {
-        restaurantId,
-        payload: order,
-      });
-    }
-
-    return order;
+    return fullOrder;
   }
 
   async getRestaurantOrders(restaurantId: string, status?: OrderStatus) {
@@ -159,6 +167,7 @@ export class OrdersService {
             id: true,
             quantity: true,
             specialInstructions: true,
+            status: true,
           },
           with: {
             menuItem: {
@@ -176,42 +185,7 @@ export class OrdersService {
   }
 
   async getOrder(orderId: string, session: UserSession) {
-    const order = await this.db.query.orders.findFirst({
-      where: (orders) => eq(orders.id, orderId),
-      with: {
-        table: {
-          columns: {
-            id: true,
-            tableNumber: true,
-            capacity: true,
-          },
-        },
-        operator: {
-          columns: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
-        orderItems: {
-          columns: {
-            id: true,
-            quantity: true,
-            specialInstructions: true,
-          },
-          with: {
-            menuItem: {
-              columns: {
-                id: true,
-                name: true,
-                price: true,
-                image: true,
-              },
-            },
-          },
-        },
-      },
-    });
+    const order = await this.getOrderWithDetails(orderId);
 
     if (!order) {
       throw new NotFoundException('Order not found');
@@ -240,6 +214,21 @@ export class OrdersService {
 
     await this.assertCanManageOrder(order.restaurantId, session);
 
+    if (status === 'completed') {
+      const items = await this.db.query.orderItems.findMany({
+        columns: {
+          status: true,
+        },
+        where: (orderItems) => eq(orderItems.orderId, orderId),
+      });
+
+      if (items.some((item) => item.status !== 'completed')) {
+        throw new BadRequestException(
+          'All order items must be completed before closing this order',
+        );
+      }
+    }
+
     const [updated] = await this.db
       .update(schema.orders)
       .set({
@@ -262,6 +251,97 @@ export class OrdersService {
     }
 
     return updated;
+  }
+
+  async updateOrderItemStatus({
+    orderId,
+    orderItemId,
+    status,
+    session,
+  }: {
+    orderId: string;
+    orderItemId: string;
+    status: OrderItemStatus;
+    session: UserSession;
+  }) {
+    const order = await this.db.query.orders.findFirst({
+      where: (orders) => eq(orders.id, orderId),
+    });
+
+    if (!order) {
+      throw new NotFoundException('Order not found');
+    }
+
+    if (order.status === 'completed') {
+      throw new BadRequestException('Cannot modify items on a completed order');
+    }
+
+    await this.assertCanManageOrder(order.restaurantId, session);
+
+    const [updatedItem] = await this.db
+      .update(schema.orderItems)
+      .set({
+        status,
+      })
+      .where(and(eq(schema.orderItems.id, orderItemId), eq(schema.orderItems.orderId, orderId)))
+      .returning({ id: schema.orderItems.id });
+
+    if (!updatedItem) {
+      throw new NotFoundException('Order item not found for this order');
+    }
+
+    const fullOrder = await this.getOrderWithDetails(orderId);
+
+    if (!fullOrder) {
+      throw new NotFoundException('Order not found');
+    }
+
+    this.events.emit(ORDER_ITEMS_UPDATED_EVENT, {
+      restaurantId: fullOrder.restaurantId,
+      payload: fullOrder,
+    });
+
+    return fullOrder;
+  }
+
+  private async getOrderWithDetails(orderId: string) {
+    return this.db.query.orders.findFirst({
+      where: (orders) => eq(orders.id, orderId),
+      with: {
+        table: {
+          columns: {
+            id: true,
+            tableNumber: true,
+            capacity: true,
+          },
+        },
+        operator: {
+          columns: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+        orderItems: {
+          columns: {
+            id: true,
+            quantity: true,
+            specialInstructions: true,
+            status: true,
+          },
+          with: {
+            menuItem: {
+              columns: {
+                id: true,
+                name: true,
+                price: true,
+                image: true,
+              },
+            },
+          },
+        },
+      },
+    });
   }
 
   private async assertCanManageOrder(restaurantId: string, session: UserSession) {

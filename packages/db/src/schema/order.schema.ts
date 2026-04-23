@@ -6,6 +6,9 @@ import { uuid } from 'drizzle-orm/pg-core';
 export const orderStatusValues = ['placed', 'completed'] as const;
 export const orderStatusEnum = pgEnum('order_status', orderStatusValues);
 
+export const orderItemStatusValues = ['placed', 'completed'] as const;
+export const orderItemStatusEnum = pgEnum('order_item_status', orderItemStatusValues);
+
 export const orders = pgTable('orders', {
   id: uuid('id').primaryKey().defaultRandom(),
   restaurantId: uuid('restaurant_id')
@@ -33,6 +36,7 @@ export const orderItems = pgTable('order_items', {
     .references(() => menuItems.id, { onDelete: 'restrict' }),
   quantity: integer('quantity').notNull(),
   specialInstructions: text('special_instructions'),
+  status: orderItemStatusEnum('status').default('placed').notNull(),
 });
 
 export const ordersRelations = relations(orders, ({ one, many }) => ({

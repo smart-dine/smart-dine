@@ -15,6 +15,7 @@ import { Session, type UserSession } from '@thallesp/nestjs-better-auth';
 import { RequireRestaurantPermissions } from '../rbac/decorators/require-permissions.decorator';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { ListOrdersDto } from './dto/list-orders.dto';
+import { UpdateOrderItemStatusDto } from './dto/update-order-item-status.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import { OrdersService } from './orders.service';
 
@@ -29,10 +30,10 @@ export class OrdersController {
 
   @Post('restaurants/:restaurantId/orders')
   @RequireRestaurantPermissions(['orders:manage'])
-  @ApiOperation({ summary: 'Create a new order for a restaurant table' })
+  @ApiOperation({ summary: 'Create an order or append items to an open table tab' })
   @ApiParam({ name: 'restaurantId', format: 'uuid' })
   @ApiCreatedResponse({
-    description: 'Order created successfully.',
+    description: 'Order payload after creating or appending items successfully.',
     schema: {
       type: 'object',
     },
@@ -108,6 +109,34 @@ export class OrdersController {
   ) {
     return this.ordersService.updateOrderStatus({
       orderId,
+      status: body.status,
+      session,
+    });
+  }
+
+  @Patch('orders/:orderId/items/:orderItemId/status')
+  @ApiOperation({ summary: 'Update status of an order item' })
+  @ApiParam({ name: 'orderId', format: 'uuid' })
+  @ApiParam({ name: 'orderItemId', format: 'uuid' })
+  @ApiOkResponse({
+    description: 'Order item status updated and latest order payload returned.',
+    schema: {
+      type: 'object',
+    },
+  })
+  @ApiBadRequestResponse({ description: 'Invalid status value.' })
+  @ApiUnauthorizedResponse({ description: 'Authentication is required.' })
+  @ApiForbiddenResponse({ description: 'Missing permission to modify this order.' })
+  @ApiNotFoundResponse({ description: 'Order or order item not found.' })
+  updateOrderItemStatus(
+    @Param('orderId', ParseUUIDPipe) orderId: string,
+    @Param('orderItemId', ParseUUIDPipe) orderItemId: string,
+    @Body() body: UpdateOrderItemStatusDto,
+    @Session() session: UserSession,
+  ) {
+    return this.ordersService.updateOrderItemStatus({
+      orderId,
+      orderItemId,
       status: body.status,
       session,
     });
