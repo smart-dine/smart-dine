@@ -23,6 +23,7 @@ export type StaffRole = StaffRoleRow['role'];
 export type TableShape = RestaurantTableRow['shape'];
 export type ReservationStatus = ReservationRow['status'];
 export type OrderStatus = OrderRow['status'];
+export type OrderItemStatus = OrderItemRow['status'];
 
 export type OpeningHours = Jsonify<RestaurantRow['openingHours']>;
 
@@ -136,7 +137,7 @@ export type RestaurantOrder = Jsonify<
     table: Pick<RestaurantTableRow, 'id' | 'tableNumber' | 'capacity'>;
     operator?: Pick<UserRow, 'id' | 'name' | 'email'>;
     orderItems: Array<
-      Pick<OrderItemRow, 'id' | 'quantity' | 'specialInstructions'> & {
+      Pick<OrderItemRow, 'id' | 'quantity' | 'specialInstructions' | 'status'> & {
         menuItem: Pick<MenuItemRow, 'id' | 'name' | 'price' | 'image'>;
       }
     >;
@@ -239,6 +240,10 @@ export interface CreateReservationInput {
 
 export interface UpdateOrderStatusInput {
   status: OrderStatus;
+}
+
+export interface UpdateOrderItemStatusInput {
+  status: OrderItemStatus;
 }
 
 export interface CreateOrderItemInput {

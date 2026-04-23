@@ -1,7 +1,7 @@
-import { ordersQueryOptions } from '#/lib/api/orders';
+import { ordersQueryOptions, updateOrderItemStatus } from '#/lib/api/orders';
 import type { OrderStatus, RestaurantOrder, RestaurantOrderStatusPatch } from '#/lib/api/contracts';
 import { getApiErrorMessage } from '#/lib/api/http';
-import type { KioskConnectionState, KioskRealtimeConnection } from '#/lib/realtime/kiosk';
+import type { KioskConnectionState } from '#/lib/realtime/kiosk';
 import { createKioskRealtimeConnection } from '#/lib/realtime/kiosk';
 import { useRestaurantRouteAccess } from '#/lib/auth/access';
 import { formatDateTime, formatMoney } from '#/lib/formatters';
@@ -104,7 +104,6 @@ function KioskPage() {
   const soundEnabledRef = useRef(false);
   const mainRef = useRef<HTMLElement>(null);
 
-  const connectionRef = useRef<KioskRealtimeConnection | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
 
   const [connectionState, setConnectionState] = useState<KioskConnectionState>('connecting');
@@ -114,7 +113,7 @@ function KioskPage() {
   const [ordersById, setOrdersById] = useState<Partial<Record<string, RestaurantOrder>>>({});
   const [highlightedOrderIds, setHighlightedOrderIds] = useState<Record<string, boolean>>({});
   const [soundEnabled, setSoundEnabled] = useState(false);
-  const [completingOrderId, setCompletingOrderId] = useState<string | null>(null);
+  const [completingOrderItemId, setCompletingOrderItemId] = useState<string | null>(null);
   const [nowMs, setNowMs] = useState(() => Date.now());
   const [isFullscreen, setIsFullscreen] = useState(false);
 
@@ -272,45 +271,33 @@ function KioskPage() {
         },
         onOrderStatusUpdated: applyStatusPatch,
         onOrderCompleted: applyStatusPatch,
+        onOrderItemsUpdated: (order) => {
+          setOrdersById((current) => ({
+            ...current,
+            [order.id]: order,
+          }));
+        },
       },
     });
 
-    connectionRef.current = connection;
-
     return () => {
       connection.disconnect();
-      connectionRef.current = null;
       setConnectionState('disconnected');
     };
   }, [access.canAccess, access.isAuthenticated, queryClient, restaurantId]);
 
-  const completeOrderMutation = useMutation({
-    mutationFn: async (orderId: string) => {
-      const connection = connectionRef.current;
-      if (!connection) {
-        throw new Error('Realtime connection is unavailable.');
-      }
-
-      await connection.completeOrder(orderId);
+  const completeOrderItemMutation = useMutation({
+    mutationFn: ({ orderId, orderItemId }: { orderId: string; orderItemId: string }) =>
+      updateOrderItemStatus(orderId, orderItemId, { status: 'completed' }),
+    onMutate: ({ orderItemId }) => {
+      setCompletingOrderItemId(orderItemId);
     },
-    onMutate: (orderId) => {
-      setCompletingOrderId(orderId);
-    },
-    onSuccess: async (_data, orderId) => {
+    onSuccess: async (updatedOrder) => {
       setPageError(null);
       setOrdersById((current) => {
-        const existing = current[orderId];
-        if (!existing) {
-          return current;
-        }
-
         return {
           ...current,
-          [orderId]: {
-            ...existing,
-            status: 'completed',
-            completedAt: new Date().toISOString(),
-          },
+          [updatedOrder.id]: updatedOrder,
         };
       });
 
@@ -326,7 +313,7 @@ function KioskPage() {
       setPageError(message);
     },
     onSettled: () => {
-      setCompletingOrderId(null);
+      setCompletingOrderItemId(null);
     },
   });
 
@@ -563,32 +550,57 @@ function KioskPage() {
                   {order.orderItems.map((item) => (
                     <li
                       key={item.id}
-                      className='bg-background/80 rounded-md border px-3 py-2 text-base'
+                      className='bg-background/80 flex flex-wrap items-center justify-between gap-3 rounded-md border px-3 py-2 text-base'
                     >
-                      <span className='font-semibold'>x{item.quantity}</span> {item.menuItem.name}
-                      {item.specialInstructions && (
-                        <span className='text-muted-foreground'> ({item.specialInstructions})</span>
-                      )}
+                      <div>
+                        <span className='font-semibold'>x{item.quantity}</span> {item.menuItem.name}
+                        {item.specialInstructions && (
+                          <span className='text-muted-foreground'>
+                            {' '}
+                            ({item.specialInstructions})
+                          </span>
+                        )}
+                      </div>
+
+                      <div className='flex flex-col gap-3 sm:flex-row sm:items-center'>
+                        <Badge
+                          variant={item.status === 'completed' ? 'default' : 'secondary'}
+                          className='w-fit uppercase'
+                        >
+                          {item.status}
+                        </Badge>
+
+                        <Button
+                          size='lg'
+                          variant={item.status === 'completed' ? 'secondary' : 'default'}
+                          disabled={
+                            item.status === 'completed' || completeOrderItemMutation.isPending
+                          }
+                          onClick={() =>
+                            completeOrderItemMutation.mutate({
+                              orderId: order.id,
+                              orderItemId: item.id,
+                            })
+                          }
+                          className='font-semibold'
+                        >
+                          {completeOrderItemMutation.isPending && completingOrderItemId === item.id
+                            ? 'Completing...'
+                            : item.status === 'completed'
+                              ? 'Completed'
+                              : 'Mark completed'}
+                        </Button>
+                      </div>
                     </li>
                   ))}
                 </ul>
 
-                <Button
-                  size='lg'
-                  className='h-14 w-full text-lg font-semibold'
-                  disabled={
-                    order.status === 'completed' ||
-                    completeOrderMutation.isPending ||
-                    connectionState !== 'connected'
-                  }
-                  onClick={() => completeOrderMutation.mutate(order.id)}
-                >
-                  {completeOrderMutation.isPending && completingOrderId === order.id
-                    ? 'Completing...'
-                    : order.status === 'completed'
-                      ? 'Completed'
-                      : 'Complete order'}
-                </Button>
+                {order.status === 'placed' &&
+                  order.orderItems.every((item) => item.status === 'completed') && (
+                    <p className='text-muted-foreground text-sm'>
+                      All items completed. Cashier can now close this order.
+                    </p>
+                  )}
               </CardContent>
             </Card>
           ))}

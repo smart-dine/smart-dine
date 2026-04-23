@@ -27,6 +27,7 @@ export interface KioskRealtimeHandlers {
   onOrderCreated?: (order: RestaurantOrder) => void;
   onOrderStatusUpdated?: (orderPatch: RestaurantOrderStatusPatch) => void;
   onOrderCompleted?: (orderPatch: RestaurantOrderStatusPatch) => void;
+  onOrderItemsUpdated?: (order: RestaurantOrder) => void;
 }
 
 export interface KioskRealtimeConnection {
@@ -177,6 +178,10 @@ export const createKioskRealtimeConnection = ({
 
   socket.on('order.completed', (payload: RestaurantOrderStatusPatch) => {
     handlers.onOrderCompleted?.(payload);
+  });
+
+  socket.on('order.items.updated', (payload: RestaurantOrder) => {
+    handlers.onOrderItemsUpdated?.(payload);
   });
 
   return {

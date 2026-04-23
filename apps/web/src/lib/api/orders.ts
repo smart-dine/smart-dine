@@ -3,6 +3,8 @@ import type {
   CreateOrderInput,
   OrderStatus,
   RestaurantOrder,
+  RestaurantOrderStatusPatch,
+  UpdateOrderItemStatusInput,
   UpdateOrderStatusInput,
 } from './contracts';
 import { apiRequest } from './http';
@@ -22,7 +24,17 @@ export const getRestaurantOrders = (restaurantId: string, query: RestaurantOrder
   });
 
 export const updateOrderStatus = (orderId: string, input: UpdateOrderStatusInput) =>
-  apiRequest<RestaurantOrder>(`/orders/${orderId}/status`, {
+  apiRequest<RestaurantOrderStatusPatch>(`/orders/${orderId}/status`, {
+    method: 'PATCH',
+    body: input,
+  });
+
+export const updateOrderItemStatus = (
+  orderId: string,
+  orderItemId: string,
+  input: UpdateOrderItemStatusInput,
+) =>
+  apiRequest<RestaurantOrder>(`/orders/${orderId}/items/${orderItemId}/status`, {
     method: 'PATCH',
     body: input,
   });

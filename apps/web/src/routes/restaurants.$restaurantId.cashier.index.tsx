@@ -1,6 +1,6 @@
 import { useRestaurantRouteAccess } from '#/lib/auth/access';
 import type { CreateOrderItemInput, RestaurantMenuItemWithCategories } from '#/lib/api/contracts';
-import { createRestaurantOrder } from '#/lib/api/orders';
+import { createRestaurantOrder, ordersQueryOptions, updateOrderStatus } from '#/lib/api/orders';
 import { restaurantsQueryOptions } from '#/lib/api/restaurants';
 import { getApiErrorMessage } from '#/lib/api/http';
 import { formatMoney } from '#/lib/formatters';
@@ -49,6 +49,11 @@ function CashierPage() {
   const menuQuery = useQuery(restaurantsQueryOptions.menu(restaurantId));
   const categoriesQuery = useQuery(restaurantsQueryOptions.categories(restaurantId));
   const floorMapQuery = useQuery(restaurantsQueryOptions.floorMap(restaurantId));
+  const openOrdersQuery = useQuery(
+    ordersQueryOptions.restaurantOrders(restaurantId, {
+      status: 'placed',
+    }),
+  );
 
   const [selectedTableId, setSelectedTableId] = useState('');
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<Set<string>>(new Set());
@@ -73,6 +78,23 @@ function CashierPage() {
     },
   });
 
+  const closeOrderMutation = useMutation({
+    mutationFn: (orderId: string) =>
+      updateOrderStatus(orderId, {
+        status: 'completed',
+      }),
+    onSuccess: async () => {
+      setPageError(null);
+      setLineItems([]);
+      await queryClient.invalidateQueries({
+        queryKey: ['restaurants', 'orders', restaurantId],
+      });
+    },
+    onError: (error) => {
+      setPageError(getApiErrorMessage(error, 'Failed to close order.'));
+    },
+  });
+
   const menuItems = useMemo(() => {
     const available = (menuQuery.data ?? []).filter((item) => item.isAvailable);
 
@@ -89,15 +111,36 @@ function CashierPage() {
 
   const menuItemsById = useMemo(
     () =>
-      menuItems.reduce<Partial<Record<string, RestaurantMenuItemWithCategories>>>(
+      (menuQuery.data ?? []).reduce<Partial<Record<string, RestaurantMenuItemWithCategories>>>(
         (accumulator, item) => {
           accumulator[item.id] = item;
           return accumulator;
         },
         {},
       ),
-    [menuItems],
+    [menuQuery.data],
   );
+
+  const activeTableOrder = useMemo(() => {
+    if (!selectedTableId) {
+      return null;
+    }
+
+    const matchingOrders = (openOrdersQuery.data ?? []).filter(
+      (order) => order.tableId === selectedTableId,
+    );
+
+    if (matchingOrders.length === 0) {
+      return null;
+    }
+
+    return [...matchingOrders].sort(
+      (left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime(),
+    )[0];
+  }, [openOrdersQuery.data, selectedTableId]);
+
+  const activeOrderIncompleteItemCount =
+    activeTableOrder?.orderItems.filter((item) => item.status !== 'completed').length ?? 0;
 
   const orderTotal = lineItems.reduce((total, item) => {
     const menuItem = menuItemsById[item.menuItemId];
@@ -293,7 +336,11 @@ function CashierPage() {
             <Label>Table</Label>
             <Select
               value={selectedTableId}
-              onValueChange={setSelectedTableId}
+              onValueChange={(value) => {
+                setSelectedTableId(value);
+                setLineItems([]);
+                setPageError(null);
+              }}
             >
               <SelectTrigger>
                 <SelectValue placeholder='Select a table' />
@@ -311,94 +358,140 @@ function CashierPage() {
             </Select>
           </div>
 
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Item</TableHead>
-                <TableHead>Qty</TableHead>
-                <TableHead className='text-right'>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {lineItems.map((lineItem) => {
-                const menuItem = menuItemsById[lineItem.menuItemId];
-
-                return (
-                  <TableRow key={lineItem.menuItemId}>
-                    <TableCell>
-                      <div>
-                        <p className='font-medium'>{menuItem?.name ?? lineItem.menuItemId}</p>
-                        <p className='text-muted-foreground text-xs'>
-                          {menuItem ? formatMoney(menuItem.price) : 'Unknown item'}
-                        </p>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className='flex items-center gap-2'>
-                        <Button
-                          variant='outline'
-                          size='icon-sm'
-                          onClick={() =>
-                            setLineItems((current) =>
-                              current
-                                .map((item) =>
-                                  item.menuItemId === lineItem.menuItemId
-                                    ? { ...item, quantity: Math.max(1, item.quantity - 1) }
-                                    : item,
-                                )
-                                .filter((item) => item.quantity > 0),
-                            )
-                          }
-                        >
-                          <Minus className='size-4' />
-                        </Button>
-                        <span className='w-6 text-center text-sm'>{lineItem.quantity}</span>
-                        <Button
-                          variant='outline'
-                          size='icon-sm'
-                          onClick={() =>
-                            setLineItems((current) =>
-                              current.map((item) =>
-                                item.menuItemId === lineItem.menuItemId
-                                  ? { ...item, quantity: item.quantity + 1 }
-                                  : item,
-                              ),
-                            )
-                          }
-                        >
-                          <Plus className='size-4' />
-                        </Button>
-                      </div>
-                    </TableCell>
-                    <TableCell className='text-right'>
-                      <Button
-                        variant='destructive'
-                        size='sm'
-                        onClick={() =>
-                          setLineItems((current) =>
-                            current.filter((item) => item.menuItemId !== lineItem.menuItemId),
-                          )
-                        }
+          <div className='grid gap-2'>
+            <Label>Open table tab</Label>
+            {!selectedTableId ? (
+              <p className='text-muted-foreground text-sm'>Select a table to view its open tab.</p>
+            ) : openOrdersQuery.isPending ? (
+              <p className='text-muted-foreground text-sm'>Loading open tab...</p>
+            ) : activeTableOrder ? (
+              <div className='space-y-2 rounded-md border p-3'>
+                <div className='flex items-center justify-between text-sm'>
+                  <span className='text-muted-foreground'>Items on tab</span>
+                  <span className='font-medium'>{activeTableOrder.orderItems.length}</span>
+                </div>
+                <div className='space-y-1'>
+                  {activeTableOrder.orderItems.map((item) => (
+                    <div
+                      key={item.id}
+                      className='flex items-center justify-between gap-3 text-sm'
+                    >
+                      <span>
+                        x{item.quantity} {item.menuItem.name}
+                      </span>
+                      <Badge
+                        variant={item.status === 'completed' ? 'default' : 'secondary'}
+                        className='uppercase'
                       >
-                        Remove
-                      </Button>
+                        {item.status}
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
+                <div className='flex items-center justify-between border-t pt-2 text-sm'>
+                  <span className='text-muted-foreground'>Tab total</span>
+                  <span className='font-semibold'>{formatMoney(activeTableOrder.totalAmount)}</span>
+                </div>
+              </div>
+            ) : (
+              <p className='text-muted-foreground text-sm'>
+                No open tab for this table yet. Submit items to create one.
+              </p>
+            )}
+          </div>
+
+          <div className='grid gap-2'>
+            <Label>Items to add</Label>
+
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Item</TableHead>
+                  <TableHead>Qty</TableHead>
+                  <TableHead className='text-right'>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {lineItems.map((lineItem) => {
+                  const menuItem = menuItemsById[lineItem.menuItemId];
+
+                  return (
+                    <TableRow key={lineItem.menuItemId}>
+                      <TableCell>
+                        <div>
+                          <p className='font-medium'>{menuItem?.name ?? lineItem.menuItemId}</p>
+                          <p className='text-muted-foreground text-xs'>
+                            {menuItem ? formatMoney(menuItem.price) : 'Unknown item'}
+                          </p>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className='flex items-center gap-2'>
+                          <Button
+                            variant='outline'
+                            size='icon-sm'
+                            onClick={() =>
+                              setLineItems((current) =>
+                                current
+                                  .map((item) =>
+                                    item.menuItemId === lineItem.menuItemId
+                                      ? { ...item, quantity: Math.max(1, item.quantity - 1) }
+                                      : item,
+                                  )
+                                  .filter((item) => item.quantity > 0),
+                              )
+                            }
+                          >
+                            <Minus className='size-4' />
+                          </Button>
+                          <span className='w-6 text-center text-sm'>{lineItem.quantity}</span>
+                          <Button
+                            variant='outline'
+                            size='icon-sm'
+                            onClick={() =>
+                              setLineItems((current) =>
+                                current.map((item) =>
+                                  item.menuItemId === lineItem.menuItemId
+                                    ? { ...item, quantity: item.quantity + 1 }
+                                    : item,
+                                ),
+                              )
+                            }
+                          >
+                            <Plus className='size-4' />
+                          </Button>
+                        </div>
+                      </TableCell>
+                      <TableCell className='text-right'>
+                        <Button
+                          variant='destructive'
+                          size='sm'
+                          onClick={() =>
+                            setLineItems((current) =>
+                              current.filter((item) => item.menuItemId !== lineItem.menuItemId),
+                            )
+                          }
+                        >
+                          Remove
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+
+                {lineItems.length === 0 && (
+                  <TableRow>
+                    <TableCell
+                      colSpan={3}
+                      className='text-muted-foreground py-6 text-center'
+                    >
+                      Add items from the menu to queue new items on this table tab.
                     </TableCell>
                   </TableRow>
-                );
-              })}
-
-              {lineItems.length === 0 && (
-                <TableRow>
-                  <TableCell
-                    colSpan={3}
-                    className='text-muted-foreground py-6 text-center'
-                  >
-                    Add items from the menu to start an order.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
+                )}
+              </TableBody>
+            </Table>
+          </div>
 
           {lineItems.map((lineItem) => (
             <div
@@ -426,29 +519,65 @@ function CashierPage() {
           ))}
 
           <div className='bg-background flex items-center justify-between rounded-md border px-3 py-2 text-sm'>
-            <span className='text-muted-foreground'>Order total</span>
+            <span className='text-muted-foreground'>Pending add total</span>
             <span className='font-semibold'>{formatMoney(orderTotal)}</span>
           </div>
 
+          {activeTableOrder && activeOrderIncompleteItemCount > 0 && (
+            <p className='text-muted-foreground text-sm'>
+              Cannot close order yet. {activeOrderIncompleteItemCount} item
+              {activeOrderIncompleteItemCount === 1 ? '' : 's'} still placed.
+            </p>
+          )}
+
+          {activeTableOrder && lineItems.length > 0 && (
+            <p className='text-muted-foreground text-sm'>
+              Submit or clear pending items before closing this order.
+            </p>
+          )}
+
           {pageError && <p className='text-destructive text-sm'>{pageError}</p>}
 
-          <Button
-            className='w-full'
-            disabled={
-              !selectedTableId ||
-              lineItems.length === 0 ||
-              createOrderMutation.isPending ||
-              menuQuery.isPending
-            }
-            onClick={() =>
-              createOrderMutation.mutate({
-                tableId: selectedTableId,
-                items: lineItems,
-              })
-            }
-          >
-            {createOrderMutation.isPending ? 'Submitting order...' : 'Submit order'}
-          </Button>
+          <div className='grid gap-2 sm:grid-cols-2'>
+            <Button
+              className='w-full'
+              disabled={
+                !selectedTableId ||
+                lineItems.length === 0 ||
+                createOrderMutation.isPending ||
+                menuQuery.isPending
+              }
+              onClick={() =>
+                createOrderMutation.mutate({
+                  tableId: selectedTableId,
+                  items: lineItems,
+                })
+              }
+            >
+              {createOrderMutation.isPending ? 'Submitting items...' : 'Add items to tab'}
+            </Button>
+
+            <Button
+              className='w-full'
+              variant='secondary'
+              disabled={
+                !activeTableOrder ||
+                activeOrderIncompleteItemCount > 0 ||
+                lineItems.length > 0 ||
+                closeOrderMutation.isPending ||
+                createOrderMutation.isPending
+              }
+              onClick={() => {
+                if (!activeTableOrder) {
+                  return;
+                }
+
+                closeOrderMutation.mutate(activeTableOrder.id);
+              }}
+            >
+              {closeOrderMutation.isPending ? 'Closing order...' : 'Close order'}
+            </Button>
+          </div>
         </CardContent>
       </Card>
     </main>

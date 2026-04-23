@@ -46,7 +46,7 @@ import {
 import { Textarea } from '@smartdine/ui/components/textarea';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
-import { ImageUp, Pencil, Plus, Trash2 } from 'lucide-react';
+import { ImageUp, Pencil, Plus, Trash2, X } from 'lucide-react';
 import { useState } from 'react';
 
 interface MenuFormState {
@@ -273,7 +273,7 @@ function RestaurantMenuPage() {
                     variant='outline'
                     className='inline-flex items-center gap-1 pr-1'
                   >
-                    <span>{category.name}</span>
+                    <span className='text-sm'>{category.name}</span>
                     <button
                       type='button'
                       className='hover:bg-muted rounded p-0.5'
@@ -288,7 +288,7 @@ function RestaurantMenuPage() {
                         }
                       }}
                     >
-                      <Trash2 className='size-3' />
+                      <X className='size-2' />
                     </button>
                   </Badge>
                 ))}
