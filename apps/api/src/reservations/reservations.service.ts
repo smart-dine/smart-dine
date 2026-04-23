@@ -326,12 +326,14 @@ export class ReservationsService {
     }
 
     const start = new Date(dayDate);
-    start.setHours(0, 0, 0, 0);
-    start.setMinutes(opensMinutes);
+    const openHours = Math.floor(opensMinutes / 60);
+    const openMins = opensMinutes % 60;
+    start.setHours(openHours, openMins, 0, 0);
 
     const end = new Date(dayDate);
-    end.setHours(0, 0, 0, 0);
-    end.setMinutes(closesMinutes);
+    const closeHours = Math.floor(closesMinutes / 60);
+    const closeMins = closesMinutes % 60;
+    end.setHours(closeHours, closeMins, 0, 0);
 
     if (closesMinutes <= opensMinutes) {
       end.setDate(end.getDate() + 1);
@@ -345,7 +347,7 @@ export class ReservationsService {
       return {};
     }
 
-    return openingHours as OpeningHoursRecord;
+    return openingHours;
   }
 
   private parseTimeToMinutes(value: string | null | undefined) {
