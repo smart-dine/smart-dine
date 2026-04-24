@@ -2,11 +2,27 @@
 
 This package provides the Smart Dine backend API built with NestJS, Drizzle ORM, Better Auth, and Socket.IO.
 
+## Runtime and Tooling
+
+- Node.js: 24+
+- Package: `@smartdine/api`
+- Framework: NestJS 11
+- ORM: Drizzle (shared schema from `@smartdine/db`)
+
+Common scripts:
+
+- `pnpm --filter @smartdine/api dev`
+- `pnpm --filter @smartdine/api build`
+- `pnpm --filter @smartdine/api start`
+- `pnpm --filter @smartdine/api test`
+
 ## Base URL and Versioning
 
 - Base prefix: `/api`
 - Versioning style: URI
 - Current version: `v1`
+- Effective REST base: `/api/v1`
+- API docs (Swagger UI): `/docs`
 
 ## Authentication
 
@@ -14,6 +30,7 @@ Authentication is provided by Better Auth under `/api/auth`.
 
 - Unauthenticated routes use `@AllowAnonymous()`.
 - All other routes require an authenticated session.
+- Better Auth OpenAPI reference is exposed through `/api/auth/reference`.
 
 ## Authorization Model
 
@@ -85,12 +102,14 @@ Socket.IO namespace:
 Client message:
 
 - `kiosk.join` with payload `{ restaurantId }`
+- `order.complete` with payload `{ orderId }`
 
 Server events:
 
 - `order.created`
 - `order.status.updated`
 - `order.completed`
+- `order.items.updated`
 
 ## Reservation Slot Logic
 
@@ -116,3 +135,23 @@ Supported upload endpoints:
 - `POST /api/v1/restaurants/:restaurantId/menu-items/:menuItemId/image/upload`
 
 Accepted image MIME types are jpeg, png, and webp with a 5 MB maximum file size.
+
+## Environment Variables
+
+The API expects environment values for runtime, auth, and integrations.
+
+Core variables:
+
+- `PORT`
+- `DATABASE_URL`
+- `BETTER_AUTH_URL`
+- `BETTER_AUTH_SECRET`
+- `CORS_ORIGIN`
+- `CORS_DOMAIN`
+
+Optional OAuth providers:
+
+- `GOOGLE_CLIENT_ID`
+- `GOOGLE_CLIENT_SECRET`
+- `GITHUB_CLIENT_ID`
+- `GITHUB_CLIENT_SECRET`
