@@ -2,6 +2,8 @@
 
 Smart Dine is a full-stack restaurant platform for discovery, reservations, cashier workflows, kiosk operations, and role-based administration.
 
+The deployed application can be found at: [smartdine.hrustinszki.com](https://smartdine.hrustinszki.com)
+
 ## What Is Included
 
 - Monorepo powered by pnpm workspaces + Turborepo
