@@ -16,6 +16,7 @@ Smart Dine is a full-stack restaurant platform for discovery, reservations, cash
 
 Project-level docs in this repository:
 
+- [TESTING.md](docs/TESTING.md)
 - [ARCHITECTURE.md](docs/ARCHITECTURE.md)
 - [USER_GUIDE.md](docs/USER_GUIDE.md)
 - [apps/api/README.md](apps/api/README.md)
