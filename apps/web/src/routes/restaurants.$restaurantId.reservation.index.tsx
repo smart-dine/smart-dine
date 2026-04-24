@@ -17,9 +17,22 @@ import { Label } from '@smartdine/ui/components/label';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { Link, Navigate, createFileRoute } from '@tanstack/react-router';
 import { CalendarClock, CheckCircle2, Clock3, MapPin } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 const MAX_PARTY_SIZE = 20;
+
+const useIsMobile = () => {
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 640);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  return isMobile;
+};
 
 type PositionedTable = RestaurantFloorTable & {
   leftPercent: number;
@@ -71,9 +84,9 @@ const toPositionedTables = (tables: RestaurantFloorTable[]): PositionedTable[] =
   }));
 };
 
-const getTableDimensions = (table: PositionedTable, maxCapacity: number) => {
-  const minSize = 48;
-  const maxSize = 82;
+const getTableDimensions = (table: PositionedTable, maxCapacity: number, isMobile: boolean) => {
+  const minSize = isMobile ? 36 : 48;
+  const maxSize = isMobile ? 56 : 82;
   const scale = maxCapacity > 1 ? (table.capacity - 1) / (maxCapacity - 1) : 0;
   const baseSize = minSize + scale * (maxSize - minSize);
 
@@ -82,23 +95,23 @@ const getTableDimensions = (table: PositionedTable, maxCapacity: number) => {
       width: baseSize,
       height: baseSize,
       borderRadius: '9999px',
-      fontSize: '0.75rem',
-      minWidth: 48,
-      minHeight: 48,
-      maxWidth: 88,
-      maxHeight: 88,
+      fontSize: isMobile ? '0.65rem' : '0.75rem',
+      minWidth: isMobile ? 36 : 48,
+      minHeight: isMobile ? 36 : 48,
+      maxWidth: isMobile ? 60 : 88,
+      maxHeight: isMobile ? 60 : 88,
     };
   }
 
   return {
-    width: Math.min(Math.max(baseSize * 1.15, 64), 104),
-    height: Math.min(Math.max(baseSize * 0.72, 52), 76),
+    width: Math.min(Math.max(baseSize * 1.15, isMobile ? 48 : 64), isMobile ? 72 : 104),
+    height: Math.min(Math.max(baseSize * 0.72, isMobile ? 40 : 52), isMobile ? 56 : 76),
     borderRadius: '1rem',
-    fontSize: '0.75rem',
-    minWidth: 64,
-    minHeight: 52,
-    maxWidth: 104,
-    maxHeight: 76,
+    fontSize: isMobile ? '0.65rem' : '0.75rem',
+    minWidth: isMobile ? 48 : 64,
+    minHeight: isMobile ? 40 : 52,
+    maxWidth: isMobile ? 72 : 104,
+    maxHeight: isMobile ? 56 : 76,
   };
 };
 
@@ -122,6 +135,7 @@ function RestaurantReservationPage() {
   const [selectedTableId, setSelectedTableId] = useState('');
   const [pageError, setPageError] = useState<string | null>(null);
   const [createdReservationId, setCreatedReservationId] = useState<string | null>(null);
+  const isMobile = useIsMobile();
 
   const availabilityLookup =
     availabilityRequest ??
@@ -386,22 +400,22 @@ function RestaurantReservationPage() {
             ) : (
               <>
                 <div
-                  className='border-border relative w-full grow rounded-xl border bg-[radial-gradient(circle_at_top,rgba(79,184,178,0.16),transparent_42%)] p-4'
+                  className='border-border relative w-full grow rounded-xl border bg-[radial-gradient(circle_at_top,rgba(79,184,178,0.16),transparent_42%)] p-2 sm:p-4'
                   style={{
-                    minHeight: '500px',
+                    minHeight: isMobile ? '300px' : '500px',
                   }}
                 >
                   {positionedTables.map((table) => {
                     const isAvailable = availableTableIds.has(table.id);
                     const isSelected = selectedTableId === table.id;
-                    const dimensions = getTableDimensions(table, maxTableCapacity);
+                    const dimensions = getTableDimensions(table, maxTableCapacity, isMobile);
 
                     return (
                       <button
                         key={table.id}
                         type='button'
                         className={
-                          `absolute flex flex-col items-center justify-center gap-1 border text-center font-semibold transition duration-200 ease-in-out ` +
+                          `absolute flex flex-col items-center justify-center gap-0.5 sm:gap-1 border text-center font-semibold transition duration-200 ease-in-out ` +
                           `${table.shape === 'round' ? 'rounded-full' : 'rounded-2xl'} ` +
                           `${isAvailable ? 'border-primary/40 bg-primary/10 text-foreground hover:border-primary hover:bg-primary/20 cursor-pointer' : 'border-border bg-muted text-muted-foreground cursor-not-allowed opacity-75'} ` +
                           `${isSelected ? 'ring-primary ring-offset-background ring-2 ring-offset-2' : ''}`
@@ -421,7 +435,7 @@ function RestaurantReservationPage() {
                           overflow: 'hidden',
                           textOverflow: 'ellipsis',
                           boxSizing: 'border-box',
-                          padding: '0.35rem 0.55rem',
+                          padding: isMobile ? '0.25rem 0.4rem' : '0.35rem 0.55rem',
                         }}
                         disabled={!isAvailable}
                         onClick={() => {
@@ -430,8 +444,8 @@ function RestaurantReservationPage() {
                         }}
                       >
                         <span className='block truncate'>{table.tableNumber}</span>
-                        <span className='text-muted-foreground text-[11px] opacity-80'>
-                          {table.capacity} seats
+                        <span className='text-muted-foreground text-[10px] sm:text-[11px] opacity-80'>
+                          {table.capacity} {isMobile ? '' : 'seats'}
                         </span>
                       </button>
                     );
