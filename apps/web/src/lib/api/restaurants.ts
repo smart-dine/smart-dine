@@ -64,16 +64,6 @@ export const removeRestaurantImageUrl = (restaurantId: string, url: string) =>
     body: { url },
   });
 
-export const uploadRestaurantImage = (restaurantId: string, file: File) => {
-  const formData = new FormData();
-  formData.append('image', file);
-
-  return apiRequest<PublicRestaurantDetail>(`/restaurants/${restaurantId}/images/upload`, {
-    method: 'POST',
-    body: formData,
-  });
-};
-
 export const createMenuItem = (restaurantId: string, input: CreateMenuItemInput) =>
   apiRequest<RestaurantMenuItem>(`/restaurants/${restaurantId}/menu-items`, {
     method: 'POST',
@@ -94,19 +84,6 @@ export const deleteMenuItem = (restaurantId: string, menuItemId: string) =>
   apiRequest<RestaurantMenuItem>(`/restaurants/${restaurantId}/menu-items/${menuItemId}`, {
     method: 'DELETE',
   });
-
-export const uploadMenuItemImage = (restaurantId: string, menuItemId: string, file: File) => {
-  const formData = new FormData();
-  formData.append('image', file);
-
-  return apiRequest<RestaurantMenuItem>(
-    `/restaurants/${restaurantId}/menu-items/${menuItemId}/image/upload`,
-    {
-      method: 'POST',
-      body: formData,
-    },
-  );
-};
 
 export const getRestaurantCategories = (restaurantId: string) =>
   apiRequest<MenuItemCategory[]>(`/restaurants/${restaurantId}/categories`);

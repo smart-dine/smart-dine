@@ -4,21 +4,14 @@ import {
   Controller,
   Delete,
   Get,
-  HttpStatus,
   Param,
-  ParseFilePipeBuilder,
   ParseUUIDPipe,
   Patch,
   Post,
   Query,
-  UploadedFile,
-  UseInterceptors,
 } from '@nestjs/common';
-import { FileInterceptor } from '@nestjs/platform-express';
 import {
   ApiBadRequestResponse,
-  ApiBody,
-  ApiConsumes,
   ApiConflictResponse,
   ApiCookieAuth,
   ApiCreatedResponse,
@@ -29,13 +22,8 @@ import {
   ApiParam,
   ApiTags,
   ApiUnauthorizedResponse,
-  ApiUnprocessableEntityResponse,
 } from '@nestjs/swagger';
 import { RequireRestaurantPermissions } from '../rbac/decorators/require-permissions.decorator';
-import {
-  ALLOWED_IMAGE_FILE_TYPE_REGEX,
-  MAX_IMAGE_UPLOAD_BYTES,
-} from '../common/constants/upload.constants';
 import { CreateMenuItemCategoryDto } from './dto/create-menu-item-category.dto';
 import { CreateMenuItemDto } from './dto/create-menu-item.dto';
 import { RestaurantsService } from './restaurants.service';
@@ -191,64 +179,6 @@ export class RestaurantsController {
     return this.restaurantsService.addRestaurantImage(restaurantId, body.url);
   }
 
-  @Post(':restaurantId/images/upload')
-  @RequireRestaurantPermissions(['restaurant:update'])
-  @ApiCookieAuth('session-cookie')
-  @ApiOperation({ summary: 'Upload and attach a restaurant image file' })
-  @ApiParam({ name: 'restaurantId', format: 'uuid' })
-  @ApiConsumes('multipart/form-data')
-  @ApiBody({
-    schema: {
-      type: 'object',
-      required: ['image'],
-      properties: {
-        image: {
-          type: 'string',
-          format: 'binary',
-          description: 'Image file (jpeg/png/webp, max 5MB).',
-        },
-      },
-    },
-  })
-  @ApiCreatedResponse({
-    description: 'Restaurant record after image upload.',
-    schema: {
-      type: 'object',
-    },
-  })
-  @ApiUnprocessableEntityResponse({
-    description: 'Image file is missing, too large, or has unsupported type.',
-  })
-  @ApiUnauthorizedResponse({ description: 'Authentication is required.' })
-  @ApiForbiddenResponse({ description: 'Missing restaurant:update permission.' })
-  @ApiNotFoundResponse({ description: 'Restaurant not found.' })
-  @UseInterceptors(
-    FileInterceptor('image', {
-      limits: {
-        fileSize: MAX_IMAGE_UPLOAD_BYTES,
-      },
-    }),
-  )
-  uploadRestaurantImage(
-    @Param('restaurantId', ParseUUIDPipe) restaurantId: string,
-    @UploadedFile(
-      new ParseFilePipeBuilder()
-        .addFileTypeValidator({
-          fileType: ALLOWED_IMAGE_FILE_TYPE_REGEX,
-        })
-        .addMaxSizeValidator({
-          maxSize: MAX_IMAGE_UPLOAD_BYTES,
-        })
-        .build({
-          fileIsRequired: true,
-          errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY,
-        }),
-    )
-    image: Express.Multer.File,
-  ) {
-    return this.restaurantsService.uploadRestaurantImage(restaurantId, image);
-  }
-
   @Delete(':restaurantId/images')
   @RequireRestaurantPermissions(['restaurant:update'])
   @ApiCookieAuth('session-cookie')
@@ -291,66 +221,6 @@ export class RestaurantsController {
     @Body() body: CreateMenuItemDto,
   ) {
     return this.restaurantsService.createMenuItem(restaurantId, body);
-  }
-
-  @Post(':restaurantId/menu-items/:menuItemId/image/upload')
-  @RequireRestaurantPermissions(['menu:manage'])
-  @ApiCookieAuth('session-cookie')
-  @ApiOperation({ summary: 'Upload and set menu item image file' })
-  @ApiParam({ name: 'restaurantId', format: 'uuid' })
-  @ApiParam({ name: 'menuItemId', format: 'uuid' })
-  @ApiConsumes('multipart/form-data')
-  @ApiBody({
-    schema: {
-      type: 'object',
-      required: ['image'],
-      properties: {
-        image: {
-          type: 'string',
-          format: 'binary',
-          description: 'Image file (jpeg/png/webp, max 5MB).',
-        },
-      },
-    },
-  })
-  @ApiCreatedResponse({
-    description: 'Updated menu item with uploaded image URL.',
-    schema: {
-      type: 'object',
-    },
-  })
-  @ApiUnprocessableEntityResponse({
-    description: 'Image file is missing, too large, or has unsupported type.',
-  })
-  @ApiUnauthorizedResponse({ description: 'Authentication is required.' })
-  @ApiForbiddenResponse({ description: 'Missing menu:manage permission.' })
-  @ApiNotFoundResponse({ description: 'Restaurant or menu item not found.' })
-  @UseInterceptors(
-    FileInterceptor('image', {
-      limits: {
-        fileSize: MAX_IMAGE_UPLOAD_BYTES,
-      },
-    }),
-  )
-  uploadMenuItemImage(
-    @Param('restaurantId', ParseUUIDPipe) restaurantId: string,
-    @Param('menuItemId', ParseUUIDPipe) menuItemId: string,
-    @UploadedFile(
-      new ParseFilePipeBuilder()
-        .addFileTypeValidator({
-          fileType: ALLOWED_IMAGE_FILE_TYPE_REGEX,
-        })
-        .addMaxSizeValidator({
-          maxSize: MAX_IMAGE_UPLOAD_BYTES,
-        })
-        .build({
-          fileIsRequired: true,
-          errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY,
-        }),
-    )
-    image: Express.Multer.File,
-  ) {
-    return this.restaurantsService.uploadMenuItemImage(restaurantId, menuItemId, image);
   }
 
   @Patch(':restaurantId/menu-items/:menuItemId')

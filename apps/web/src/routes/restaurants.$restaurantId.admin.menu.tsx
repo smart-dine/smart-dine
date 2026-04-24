@@ -6,7 +6,6 @@ import {
   restaurantsQueryOptions,
   setMenuItemCategories,
   updateMenuItem,
-  uploadMenuItemImage,
 } from '#/lib/api/restaurants';
 import type {
   CreateMenuItemInput,
@@ -46,7 +45,7 @@ import {
 import { Textarea } from '@smartdine/ui/components/textarea';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
-import { ImageUp, Pencil, Plus, Trash2, X } from 'lucide-react';
+import { Pencil, Plus, Trash2, X } from 'lucide-react';
 import { useState } from 'react';
 
 interface MenuFormState {
@@ -153,18 +152,6 @@ function RestaurantMenuPage() {
     },
     onError: (error) => {
       setPageError(getApiErrorMessage(error, 'Failed to delete menu item.'));
-    },
-  });
-
-  const uploadImageMutation = useMutation({
-    mutationFn: ({ menuItemId, file }: { menuItemId: string; file: File }) =>
-      uploadMenuItemImage(restaurantId, menuItemId, file),
-    onSuccess: async () => {
-      setPageError(null);
-      await invalidateMenu();
-    },
-    onError: (error) => {
-      setPageError(getApiErrorMessage(error, 'Failed to upload menu image.'));
     },
   });
 
@@ -639,27 +626,6 @@ function RestaurantMenuPage() {
                             </form>
                           </DialogContent>
                         </Dialog>
-
-                        <label className='inline-flex cursor-pointer items-center gap-1 rounded-md border px-2 py-1 text-sm'>
-                          <ImageUp className='size-4' />
-                          <input
-                            type='file'
-                            className='hidden'
-                            accept='image/png,image/jpeg,image/webp'
-                            onChange={(event) => {
-                              const file = event.target.files?.[0];
-                              if (!file) {
-                                return;
-                              }
-
-                              uploadImageMutation.mutate({
-                                menuItemId: item.id,
-                                file,
-                              });
-                            }}
-                          />
-                          Image
-                        </label>
 
                         <Button
                           variant='destructive'
