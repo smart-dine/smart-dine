@@ -71,6 +71,37 @@ const toPositionedTables = (tables: RestaurantFloorTable[]): PositionedTable[] =
   }));
 };
 
+const getTableDimensions = (table: PositionedTable, maxCapacity: number) => {
+  const minSize = 48;
+  const maxSize = 82;
+  const scale = maxCapacity > 1 ? (table.capacity - 1) / (maxCapacity - 1) : 0;
+  const baseSize = minSize + scale * (maxSize - minSize);
+
+  if (table.shape === 'round') {
+    return {
+      width: baseSize,
+      height: baseSize,
+      borderRadius: '9999px',
+      fontSize: '0.75rem',
+      minWidth: 48,
+      minHeight: 48,
+      maxWidth: 88,
+      maxHeight: 88,
+    };
+  }
+
+  return {
+    width: Math.min(Math.max(baseSize * 1.15, 64), 104),
+    height: Math.min(Math.max(baseSize * 0.72, 52), 76),
+    borderRadius: '1rem',
+    fontSize: '0.75rem',
+    minWidth: 64,
+    minHeight: 52,
+    maxWidth: 104,
+    maxHeight: 76,
+  };
+};
+
 export const Route = createFileRoute('/restaurants/$restaurantId/reservation/')({
   component: RestaurantReservationPage,
 });
@@ -125,6 +156,11 @@ function RestaurantReservationPage() {
   const positionedTables = useMemo(
     () => toPositionedTables(floorMapQuery.data?.tables ?? []),
     [floorMapQuery.data?.tables],
+  );
+
+  const maxTableCapacity = useMemo(
+    () => Math.max(...positionedTables.map((table) => table.capacity), 1),
+    [positionedTables],
   );
 
   const createReservationMutation = useMutation({
@@ -208,7 +244,7 @@ function RestaurantReservationPage() {
   }
 
   return (
-    <main className='container mx-auto flex flex-col gap-5 px-4 py-8'>
+    <main className='container mx-auto flex flex-1 flex-col gap-5 px-4 py-8'>
       <section className='space-y-2'>
         <p className='text-primary inline-flex items-center gap-2 text-sm font-medium'>
           <CalendarClock className='size-4' />
@@ -220,7 +256,7 @@ function RestaurantReservationPage() {
         </p>
       </section>
 
-      <section className='grid gap-4 lg:grid-cols-[0.9fr_1.1fr]'>
+      <section className='grid grow gap-4 lg:grid-cols-[0.9fr_1.1fr]'>
         <Card>
           <CardHeader>
             <CardTitle className='inline-flex items-center gap-2'>
@@ -325,7 +361,7 @@ function RestaurantReservationPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className='flex flex-col'>
           <CardHeader>
             <CardTitle className='inline-flex items-center gap-2'>
               <MapPin className='size-4' />
@@ -336,7 +372,7 @@ function RestaurantReservationPage() {
             </CardDescription>
           </CardHeader>
 
-          <CardContent className='space-y-4'>
+          <CardContent className='flex grow flex-col space-y-4 overflow-hidden'>
             {!availabilityRequest ? (
               <p className='text-muted-foreground text-sm'>
                 Choose a date, time, and party size to load table availability.
@@ -349,19 +385,24 @@ function RestaurantReservationPage() {
               </p>
             ) : (
               <>
-                <div className='relative h-105 overflow-hidden rounded-xl border bg-[radial-gradient(circle_at_top,rgba(79,184,178,0.16),transparent_42%)]'>
+                <div
+                  className='border-border relative w-full grow rounded-xl border bg-[radial-gradient(circle_at_top,rgba(79,184,178,0.16),transparent_42%)] p-4'
+                  style={{
+                    minHeight: '500px',
+                  }}
+                >
                   {positionedTables.map((table) => {
                     const isAvailable = availableTableIds.has(table.id);
                     const isSelected = selectedTableId === table.id;
-                    const shapeClass =
-                      table.shape === 'round' ? 'h-14 w-14 rounded-full' : 'h-12 w-16 rounded-md';
+                    const dimensions = getTableDimensions(table, maxTableCapacity);
 
                     return (
                       <button
                         key={table.id}
                         type='button'
                         className={
-                          `${shapeClass} absolute border text-xs font-medium transition ` +
+                          `absolute flex flex-col items-center justify-center gap-1 border text-center font-semibold transition duration-200 ease-in-out ` +
+                          `${table.shape === 'round' ? 'rounded-full' : 'rounded-2xl'} ` +
                           `${isAvailable ? 'border-primary/40 bg-primary/10 text-foreground hover:border-primary hover:bg-primary/20 cursor-pointer' : 'border-border bg-muted text-muted-foreground cursor-not-allowed opacity-75'} ` +
                           `${isSelected ? 'ring-primary ring-offset-background ring-2 ring-offset-2' : ''}`
                         }
@@ -369,6 +410,18 @@ function RestaurantReservationPage() {
                           left: `${table.leftPercent}%`,
                           top: `${table.topPercent}%`,
                           transform: 'translate(-50%, -50%)',
+                          width: `${dimensions.width}px`,
+                          height: `${dimensions.height}px`,
+                          minWidth: `${dimensions.minWidth}px`,
+                          minHeight: `${dimensions.minHeight}px`,
+                          maxWidth: `${dimensions.maxWidth}px`,
+                          maxHeight: `${dimensions.maxHeight}px`,
+                          fontSize: dimensions.fontSize,
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          boxSizing: 'border-box',
+                          padding: '0.35rem 0.55rem',
                         }}
                         disabled={!isAvailable}
                         onClick={() => {
@@ -376,7 +429,10 @@ function RestaurantReservationPage() {
                           setSelectedTableId(table.id);
                         }}
                       >
-                        {table.tableNumber}
+                        <span className='block truncate'>{table.tableNumber}</span>
+                        <span className='text-muted-foreground text-[11px] opacity-80'>
+                          {table.capacity} seats
+                        </span>
                       </button>
                     );
                   })}
