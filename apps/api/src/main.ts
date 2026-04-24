@@ -3,25 +3,10 @@ import { AppModule } from './app.module';
 import { ValidationPipe, VersioningType } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { NestExpressApplication } from '@nestjs/platform-express';
-import { json, urlencoded } from 'express';
-import type { Request, Response, NextFunction } from 'express';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     bodyParser: false, // Better Auth
-  });
-
-  // Enable body parsing for non-multipart requests
-  app.use((req: Request, res: Response, next: NextFunction) => {
-    if (req.is('application/json')) {
-      return json()(req, res, next);
-    }
-
-    if (req.is('application/x-www-form-urlencoded')) {
-      return urlencoded({ extended: true })(req, res, next);
-    }
-
-    next();
   });
 
   app.enableCors({
